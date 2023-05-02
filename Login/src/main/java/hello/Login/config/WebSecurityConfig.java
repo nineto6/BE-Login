@@ -13,10 +13,14 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Spring Security 환경 설정을 구성하기 위한 클래스입니다.
@@ -48,6 +52,9 @@ public class WebSecurityConfig {
         log.debug("[+] WebSecurityConfig Start !");
 
         http
+                .cors().configurationSource(corsConfigurationSource())
+                .and()
+
                 // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf 를 사용하지 않는다.
                 .csrf().disable()
 
@@ -67,7 +74,7 @@ public class WebSecurityConfig {
                 // [STEP6] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
                 .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
-                // [STEP7] 최종 구성한 값을 사용함.
+        // [STEP7] 최종 구성한 값을 사용함.
         return http.build();
     }
 
@@ -130,6 +137,20 @@ public class WebSecurityConfig {
     @Bean
     public CustomAuthFailureHandler customLoginFailureHandler() {
         return new CustomAuthFailureHandler();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedHeader("*");
+        configuration.addAllowedMethod("*");
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     /**
