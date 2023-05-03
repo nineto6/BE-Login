@@ -19,7 +19,13 @@ repositories {
 }
 
 dependencies {
+	// Swagger 추가
+	implementation 'org.springdoc:springdoc-openapi-ui:1.6.12'
+
 	implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+
+	// DataTypeConverter 추가
+	implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2'
 
 	// jwt 추가
 	implementation 'io.jsonwebtoken:jjwt:0.9.1'
