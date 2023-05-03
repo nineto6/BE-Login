@@ -1,4 +1,4 @@
-package hello.Login.filter;
+package hello.Login.config.filter;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;

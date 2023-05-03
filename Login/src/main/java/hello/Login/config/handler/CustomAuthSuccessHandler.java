@@ -1,6 +1,8 @@
-package hello.Login.handler;
+package hello.Login.config.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hello.Login.common.codes.AuthConstants;
+import hello.Login.common.utils.TokenUtils;
 import hello.Login.model.UserDetailsDto;
 import hello.Login.model.UserDto;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +58,8 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
             jsonObject = new JSONObject(responseMap);
 
             // TODO: 추후 JWT 발급에 사용할 예정
+            String token = TokenUtils.generateJwtToken(userDto);
+            response.addHeader(AuthConstants.AUTH_HEADER, AuthConstants.TOKEN_TYPE + " " + token);
         }
 
         // [STEP4] 구성한 응답 값을 전달합니다.

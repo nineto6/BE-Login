@@ -1,4 +1,4 @@
-package hello.Login.handler;
+package hello.Login.config.handler;
 
 import hello.Login.model.UserDetailsDto;
 import lombok.NonNull;
