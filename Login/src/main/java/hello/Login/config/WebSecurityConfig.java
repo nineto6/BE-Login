@@ -1,9 +1,10 @@
 package hello.Login.config;
 
-import hello.Login.filter.CustomAuthenticationFilter;
-import hello.Login.handler.CustomAuthFailureHandler;
-import hello.Login.handler.CustomAuthSuccessHandler;
-import hello.Login.handler.CustomAuthenticationProvider;
+import hello.Login.config.filter.CustomAuthenticationFilter;
+import hello.Login.config.filter.JwtAuthorizationFilter;
+import hello.Login.config.handler.CustomAuthFailureHandler;
+import hello.Login.config.handler.CustomAuthSuccessHandler;
+import hello.Login.config.handler.CustomAuthenticationProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -13,11 +14,11 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -62,7 +63,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
 
                 // [STEP3] Spring Security JWT Filter Load
-                //.addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class)
 
                 // [STEP4] Session 기반의 인증기반을 사용하지 않고 추후 JWT 를 이용하여 인증 예정
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -139,6 +140,10 @@ public class WebSecurityConfig {
         return new CustomAuthFailureHandler();
     }
 
+    /**
+     * 9. CORS 설정
+     * @return
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -154,8 +159,12 @@ public class WebSecurityConfig {
     }
 
     /**
-     * 9. JWT 토큰을 통하여서 사용자를 인증합니다.
+     * 10. JWT 토큰을 통하여서 사용자를 인증합니다.
      * @return JwtAuthorizationFilter
      */
+    @Bean
+    public JwtAuthorizationFilter jwtAuthorizationFilter() {
+        return new JwtAuthorizationFilter();
+    }
 
 }
