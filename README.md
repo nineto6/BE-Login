@@ -2,7 +2,7 @@
 
 ## 시작하기 전에...
 
-ErrorCode Security, JWT 등을 참고한 사이트 출처 [Contributor9 블로그](https://adjh54.tistory.com)
+ErrorCode, Security, JWT 등을 참고한 사이트 출처 [Contributor9 블로그](https://adjh54.tistory.com)
 
 <br/>
 <p>
@@ -31,6 +31,8 @@ create table tb_user(
 ```
 
 > ## Spring Security 설정
+- ### Handler, Filter, Provider 생성
+- ### WebSecurityConfig 생성 및 설정
 
 > ## Use Dto, UserDetailsDto 추가
 
@@ -60,8 +62,11 @@ create table tb_user(
 
 ##### 20230503
 > ## ErrorCode
+
 > ## SuccessCode
+
 > ## BusinessExceptionHandler
+
 > ## ApiResponse
 
 > ## Dependencies 추가
