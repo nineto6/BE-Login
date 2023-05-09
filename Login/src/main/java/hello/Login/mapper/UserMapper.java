@@ -7,5 +7,6 @@ import java.util.Optional;
 
 @Mapper
 public interface UserMapper {
+    void save(UserDto userDto);
     Optional<UserDto> login(UserDto userDto);
 }
