@@ -9,7 +9,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -32,11 +31,17 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
         List<String> list = Arrays.asList(
                 "/api/user/login",  // 로그인
-                "/api/test/generateToken" //
+                "/api/test/generateToken"
         );
 
         // 2. 토큰이 필요하지 않은 API URL 의 경우 => 로직 처리 없이 다음 필터로 이동
         if(list.contains(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 3. OPTIONS 요청일 경우 => 로직 처리 없이 다음 필터로 이동
+        if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
             filterChain.doFilter(request, response);
             return;
         }

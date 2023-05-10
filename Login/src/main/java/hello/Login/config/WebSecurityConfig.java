@@ -1,5 +1,6 @@
 package hello.Login.config;
 
+import hello.Login.common.codes.AuthConstants;
 import hello.Login.config.filter.CustomAuthenticationFilter;
 import hello.Login.config.filter.JwtAuthorizationFilter;
 import hello.Login.config.handler.CustomAuthFailureHandler;
@@ -53,9 +54,6 @@ public class WebSecurityConfig {
         log.debug("[+] WebSecurityConfig Start !");
 
         http
-                .cors().configurationSource(corsConfigurationSource())
-                .and()
-
                 // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf 를 사용하지 않는다.
                 .csrf().disable()
 
@@ -73,8 +71,10 @@ public class WebSecurityConfig {
                 .formLogin().disable()
 
                 // [STEP6] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
-                .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
 
+                // CORS 설정
+                .cors().configurationSource(corsConfigurationSource());
         // [STEP7] 최종 구성한 값을 사용함.
         return http.build();
     }
@@ -148,10 +148,11 @@ public class WebSecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedOrigin("https://localhost:3000/");
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);
+        configuration.addExposedHeader(AuthConstants.AUTH_HEADER);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

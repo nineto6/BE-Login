@@ -68,7 +68,7 @@ public class TokenUtils {
             log.error("Token Expired");
             return false;
         } catch (JwtException exception) {
-            log.error("Token Expired");
+            log.error("Token Tampered", exception);
             return false;
         } catch(NullPointerException exception) {
             log.error("Token is null");
@@ -147,16 +147,26 @@ public class TokenUtils {
      */
     private static Claims getClaimsFormToken(String token) {
         return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(jwtSecretKey))
-                .parseClaimsJwt(token).getBody();
+                .parseClaimsJws(token).getBody();
     }
 
     /**
-     * 토큰을 기반으로 사용자 정보를 반환받는 메서드
+     * 토큰을 기반으로 사용자 아이디를 반환받는 메서드
      * @param token : 토큰
      * @return String : 사용자 아이디
      */
     public static String getUserIdFormToken(String token) {
         Claims claims = getClaimsFormToken(token);
         return claims.get("userId").toString();
+    }
+
+    /**
+     * 토큰을 기반으로 사용자 닉네임을 반환받는 메서드
+     * @param token : 토큰
+     * @return String : 사용자 닉네임
+     */
+    public static String getUserNmFormToken(String token) {
+        Claims claims = getClaimsFormToken(token);
+        return claims.get("userNm").toString();
     }
 }
