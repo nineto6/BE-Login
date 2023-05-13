@@ -26,14 +26,16 @@ spring.datasource.url=jdbc:h2:tcp://localhost/~/test
 spring.datasource.username=sa
 spring.datasource.password=
 ```
-- Spring 로그 및 Mybatis 로그 
+- Spring, Mybatis 로그 및 Mybatis 설정
 ```test
 # Log
 logging.level.hello.Login=trace
 
 #MyBatis log
-mybatis.configuration.map-underscore-to-camel-case=true
 logging.level.hello.Login.mapper.mybatis=trace
+
+#관계형 데이터베이스(snake_case)에서 자바 객체(cameCase)로 언더스코어 표기법을 카멜로 자동 변경해준다.
+mybatis.configuration.map-underscore-to-camel-case=true
 ```
 
 > ## User 스키마 작성
