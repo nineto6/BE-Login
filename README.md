@@ -29,23 +29,31 @@ create table tb_user(
 );
 ```
 
-> ## Spring Security 설정
-- ### Handler 추가
-- ### Filter 추가
-- ### Provider 생성
-- ### WebSecurityConfig 생성 및 설정
+> ## CustomAuthenticationFilter 작성
 
-> ## Use Dto, UserDetailsDto 추가
+> ## CustomAuthSuccessHandler 작성
+
+> ## CustomAuthFailureHandler 작성
+
+> ## CustomAuthenticationProvider 작성
+
+> ## UserDto 작성
+
+> ## UserDetailsDto 작성
 
 > ## Mybatis 생성 (UserMapper.java, UserMapper.xml)
 
 > ## Simple-JSON 디펜던시 추가
+
+> ## WebSecurityConfig 작성
+
+> ## .../api/user/login URL에 Front 서버에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 문제 발생
 <br/>
 <hr/>
 
 ##### 20230502
 
-> ## Spring CORS 문제 해결 및 설정 코드 작성
+> ## CORS 문제 해결 및 설정 코드 작성
 - 프론트와 요청을 주고받을 수 있게 WebSecuritConfig에 설정 및 Bean 등록
 ```Java
 @Bean
@@ -62,6 +70,8 @@ create table tb_user(
         return source;
     }
 ```
+- .../api/user/login URL에 Front 서버에서 Back 서버로 요청 및 응답을 확인하여 정상 로그를 확인
+<img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_01.png">
 <br/>
 <hr/>
 
@@ -82,9 +92,9 @@ create table tb_user(
 
 ##### 20230504
 > ## JWT 토큰 관련 코드 작성
-- JWT 관련된 토큰 Util 생성
-- URL 별 JWT 검증 수행 사용자 인증기 생성
-- JWT 관련된 상수로 사용 되는 파일 생성
+- JWT 관련된 토큰 Util 작성
+- URL 별 JWT 검증 수행 사용자 인증기 작성
+- JWT 관련된 상수로 사용 되는 파일 작성
 <br/>
 <hr/>
 
@@ -103,7 +113,7 @@ create table tb_board(
    board_content  varchar(1000) not null
 );
 ```
-> ## UserMapper Insert 문 추가 (회원가입)
+> ## UserMapper Insert 추가 (회원가입)
 
 > ## UserMapperTest 작성
 <br/>
