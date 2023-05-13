@@ -18,6 +18,24 @@ ErrorCode, Security, JWT 등을 참고한 사이트 출처 [Contributor9 블로�
 <hr/>
 
 ###### 20230501
+> ## application.properties 작성
+- Datasource url, username, password
+```text
+# h2 database
+spring.datasource.url=jdbc:h2:tcp://localhost/~/test
+spring.datasource.username=sa
+spring.datasource.password=
+```
+- Spring 로그 및 Mybatis 로그 
+```test
+# Log
+logging.level.hello.Login=trace
+
+#MyBatis log
+mybatis.configuration.map-underscore-to-camel-case=true
+logging.level.hello.Login.mapper.mybatis=trace
+```
+
 > ## User 스키마 작성
 ```SQL
 create table tb_user(
@@ -41,7 +59,7 @@ create table tb_user(
 
 > ## UserDetailsDto 작성
 
-> ## Mybatis 생성 (UserMapper.java, UserMapper.xml)
+> ## UserMapper, UserMapper.xml 작성
 
 > ## Simple-JSON 디펜던시 추가
 
