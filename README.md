@@ -70,7 +70,8 @@ create table tb_user(
         return source;
     }
 ```
-- .../api/user/login URL에 Front 서버에서 Back 서버로 요청 및 응답을 확인하여 정상 로그를 확인
+- .../api/user/login URL에 Front 서버에서 Back 서버로 요청 및 응답을 확인하여 200 정상 응답코드 확인
+- Back 서버에서의 로그 확인 이미지
 <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_01.png">
 <br/>
 <hr/>
