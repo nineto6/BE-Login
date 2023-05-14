@@ -67,7 +67,7 @@ create table tb_user(
 
 > ## WebSecurityConfig 작성
 
-> ## .../api/user/login URL에 Front 서버에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 문제 발생
+> ## .../api/user/login URL에 Front에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 문제 발생
 <br/>
 <hr/>
 
@@ -90,7 +90,7 @@ create table tb_user(
         return source;
     }
 ```
-- .../api/user/login URL에 Front 서버에서 Back 서버로 요청 및 응답을 확인하여 200 정상 응답코드 확인
+- .../api/user/login URL에 Front에서 Back 서버로 요청 및 응답을 확인하여 200 정상 응답코드 확인
 - Back 서버에서의 로그 확인 이미지
 <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_01.png">
 <br/>
@@ -144,6 +144,12 @@ create table tb_board(
 > ## TokenUtils의 토큰을 기반으로 사용자 닉네임을 반환받는 메서드 작성
 
 > ## WebConfig의 CorsConfiguration에서 addExposedHeader("Authorization") 추가
+
+> ## TestController 작성
+
+> ## .../api/test/generateToken URL에 Front에서 Back 서버로 요청 및 응답 확인
+- HTTP Body JSON 내용 이미지
+<img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_02.png">
 <br/>
 <hr/>
 
