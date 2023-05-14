@@ -8,12 +8,19 @@ ErrorCode, Security, JWT 등을 참고한 사이트 출처 [Contributor9 블로�
 <img src="https://img.shields.io/badge/Java-007396.svg?&style=for-the-badge&logo=Java&logoColor=white"/>
 <img src="https://img.shields.io/badge/Spring%20Boot-6DB33F.svg?&style=for-the-badge&logo=SpringBoot&logoColor=white"/>
 <img src="https://img.shields.io/badge/Spring-6DB33F.svg?&style=for-the-badge&logo=Spring&logoColor=white"/>
-<img src="https://img.shields.io/badge/Spring%20Security-6DB33F.svg?&style=for-the-badge&logo=Spring&logoColor=white">
 <img src="https://img.shields.io/badge/MyBatis-000000.svg?&style=for-the-badge&logoColor=white">
 <p/>
 
 - 현재 `Front-End` 와 `Back-end` 는 다른 환경에서 개발하고 있음
-- 초기 Dependencies : Spring Web, Spring Security, Mybatis, Lombok, H2 Database
+- Project : Gradle
+- SpringBoot 버전 : 2.7.11
+- Java 버전 : 11
+- Dependencies
+   - Spring Web:1.6.12
+   - Spring Security:5.7.8
+   - Mybatis:3.5.11
+   - Lombok:1.2.12
+   - H2 Database:2.1.214
 <br/>
 <hr/>
 
@@ -49,6 +56,9 @@ create table tb_user(
 );
 ```
 
+> ## Dependencies 추가
+- implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
+
 > ## CustomAuthenticationFilter 작성
 
 > ## CustomAuthSuccessHandler 작성
@@ -61,13 +71,12 @@ create table tb_user(
 
 > ## UserDetailsDto 작성
 
-> ## UserMapper, UserMapper.xml 작성
-
-> ## Simple-JSON 디펜던시 추가
+> ## UserMapper 작성
 
 > ## WebSecurityConfig 작성
 
-> ## .../api/user/login URL에 Front에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 문제 발생
+> ## 문제 발생
+- .../api/user/login URL에 Front에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 오류 확인
 <br/>
 <hr/>
 
@@ -97,6 +106,10 @@ create table tb_user(
 <hr/>
 
 ##### 20230503
+> ## Dependencies 추가
+- implementation 'org.springdoc:springdoc-openapi-ui:1.6.12' // Swagger 추가
+- implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2' // DataTypeConverter 추가
+
 > ## ErrorCode
 
 > ## SuccessCode
@@ -104,18 +117,18 @@ create table tb_user(
 > ## BusinessExceptionHandler
 
 > ## ApiResponse
-
-> ## Build.gradle에 Dependencies 추가
-- implementation 'org.springdoc:springdoc-openapi-ui:1.6.12' // Swagger 추가
-- implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2' // DataTypeConverter 추가
 <br/>
 <hr/>
 
 ##### 20230504
-> ## JWT 토큰 관련 코드 작성
-- JWT 관련된 토큰 Util 작성
-- URL 별 JWT 검증 수행 사용자 인증기 작성
-- JWT 관련된 상수로 사용 되는 파일 작성
+> ## Dependencies 추가
+- implementation 'io.jsonwebtoken:jjwt:0.9.1' // jwt 
+
+> ## AuthConstants 추가
+
+> ## TokenUtils 추가
+
+> ## JwtAuthorizationFilter 추가
 <br/>
 <hr/>
 
