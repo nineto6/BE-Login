@@ -1,5 +1,6 @@
 package hello.Login.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hello.Login.common.codes.AuthConstants;
 import hello.Login.common.codes.SuccessCode;
 import hello.Login.common.utils.TokenUtils;
@@ -9,6 +10,8 @@ import hello.Login.model.BoardDto;
 import hello.Login.service.BoardService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +42,7 @@ public class BoardController {
         boardService.create(board);
 
         ApiResponse ar = ApiResponse.builder()
-                .result("Success")
+                .result(null)
                 .resultCode(SuccessCode.INSERT_SUCCESS.getStatus())
                 .resultMsg(SuccessCode.INSERT_SUCCESS.getMessage())
                 .build();
