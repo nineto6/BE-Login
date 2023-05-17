@@ -183,3 +183,22 @@ create table tb_board(
 > ## BoardController REST 컨트롤러 작성
 
 > ## ObjectApiResponse 작성
+<br/>
+<hr/>
+
+##### 20230515
+> ## UserService 코드 추가
+
+> ## UserServiceImpl 코드 추가
+
+> ## UserController 작성
+
+> ## ErrorResponse 작성
+
+> ## GlobalExceptionHandler 작성
+<br/>
+<hr/>
+
+##### 20230516
+> ## JwtAuthorizationFilter 코드 추가
+> ## 테스트
