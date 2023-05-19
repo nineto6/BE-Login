@@ -134,7 +134,6 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
         UserDto userDto = ((UserDetailsDto) authentication.getPrincipal()).getUserDto();
 
         // [STEP2] 조회한 데이터를 JSONObject 형태로 파싱을 수행합니다.
-        // 문제점 발생 지점
         JSONObject userVoObj = (JSONObject)JSONValue.parse(new ObjectMapper().writeValueAsString(userDto));
 
         HashMap<String, Object> responseMap = new HashMap<>();
@@ -242,7 +241,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 
         UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
 
-        // 'AuthenticationFilter' 에서 생성된 토큰으로부터 아이디와 비밀번호를 조회함
+        // 'AuthenticationFilter' 에서 생성된 토큰으로부터 아이디와 비밀번호를 조회
         String userId = token.getName();
         String userPw = (String) token.getCredentials();
 
@@ -348,10 +347,8 @@ public class UserDetailsDto implements UserDetails {
 ```Java
 @Mapper
 public interface UserMapper {
-    void save(UserDto userDto);
     Optional<UserDto> login(UserDto userDto);
 }
-
 ```
 
 > ## UserMapper.xml 작성
@@ -369,14 +366,6 @@ public interface UserMapper {
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="hello.Login.mapper.UserMapper">
-
-    <!-- 회원가입 -->
-    <insert id="save" useGeneratedKeys="true" keyProperty="userSq">
-        INSERT INTO TB_USER
-        (USER_ID, USER_PW, USER_NM, USER_ST)
-        VALUES (#{userId}, #{userPw}, #{userNm}, #{userSt})
-    </insert>
-
     <!-- 로그인 -->
     <select id="login" resultType="hello.Login.model.UserDto">
         SELECT t1.*
@@ -512,7 +501,7 @@ public class WebSecurityConfig {
 ##### 20230502
 
 > ## CORS 문제 해결 및 설정 코드 작성
-- 프론트와 요청을 주고받을 수 있게 WebSecuritConfig에 설정 및 Bean 등록
+- 프론트와 요청을 주고받을 수 있게 WebSecurityConfig에 코드 추가 및 Bean 등록
 ```Java
 @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -540,12 +529,143 @@ public class WebSecurityConfig {
 - implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2' // DataTypeConverter 추가
 
 > ## ErrorCode
+```Java
+/**
+ * [공통 코드] API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
+ * Global Error CodeList : 전역으로 발생하는 에러코드를 관리한다.
+ * custom Error CodeList : 업무 페이지에서 발생하는 에러코드를 관리한다.
+ * Error Code Constructor : 에러코드를 직접적으로 사용하기 위한 생성자를 구성한다.
+ */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public enum ErrorCode {
+    BUSINESS_EXCEPTION_ERROR(200, "B999", "Business Exception Error"),
+
+    /**
+     * *********************************** custom Error CodeList ********************************************
+     */
+    // Transaction Insert Error
+    INSERT_ERROR(200, "9999", "Insert Transaction Error Exception"),
+
+    // Transaction Update Error
+    UPDATE_ERROR(200, "9999", "Update Transaction Error Exception"),
+
+    // Transaction Delete Error
+    DELETE_ERROR(200, "9999", "Delete Transaction Error Exception"),
+
+    ; // End
+
+    /**
+     * *********************************** Error Code Constructor ********************************************
+     */
+    // 에러 코드의 '코드 상태'을 반환한다.
+    private int status;
+
+    // 에러 코드의 '코드간 구분 값'을 반환한다.
+    private String divisionCode;
+
+    // 에러코드의 '코드 메시지'을 반환한다.
+    private String message;
+
+    // 생성자 구성
+    ErrorCode(final int status, final String divisionCode, final String message) {
+        this.status = status;
+        this.divisionCode = divisionCode;
+        this.message = message;
+    }
+}
+```
 
 > ## SuccessCode
+```Java
+/**
+ * [공통 코드] API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
+ * Success CodeList : 성공 코드를 관리한다.
+ * Success Code Constructor : 성공 코드를 사용하기 위한 생성자를 구성한다.
+ *
+ */
+@Getter
+public enum SuccessCode {
+
+    /**
+     * ******************************* Success CodeList ***************************************
+     */
+    // 조회 성공 코드 (HTTP Response: 200 OK)
+    SELECT_SUCCESS(200, "200", "SELECT SUCCESS"),
+    // 삭제 성공 코드 (HTTP Response: 200 OK)
+    DELETE_SUCCESS(200, "200", "DELETE SUCCESS"),
+    // 삽입 성공 코드 (HTTP Response: 201 Created)
+    INSERT_SUCCESS(201, "201", "INSERT SUCCESS"),
+    // 수정 성공 코드 (HTTP Response: 201 Created)
+    UPDATE_SUCCESS(204, "204", "UPDATE SUCCESS"),
+
+    ; // End
+
+    /**
+     * ******************************* Success Code Constructor ***************************************
+     */
+    // 성공 코드의 '코드 상태'를 반환한다.
+    private final int status;
+
+    // 성공 코드의 '코드 값'을 반환한다.
+    private final String code;
+
+    // 성공 코드의 '코드 메시지'를 반환한다.s
+    private final String message;
+
+    // 생성자 구성
+    SuccessCode(final int status, final String code, final String message) {
+        this.status = status;
+        this.code = code;
+        this.message = message;
+    }
+}
+```
 
 > ## BusinessExceptionHandler
+```Java
+/**
+ * 예외 처리 관리를 하기위한 Business Layer인 ExceptionHandler
+ * ExceptionHandler의 장점
+ * 1. 예외 처리를 위한 일관된 방법을 제공한다.
+ * 2. 예외가 발생할 경우 처리하기 위한 구조를 제공하므로 코드의 가독성을 높일 수 있다.
+ * 3. 예외 처리를 통해 프로그램의 안전성과 신뢰성을 높일 수 있다.
+ */
+public class BusinessExceptionHandler extends RuntimeException {
+
+    @Getter
+    private final ErrorCode errorCode;
+
+    @Builder
+    public BusinessExceptionHandler(String message, ErrorCode errorCode) {
+        super(message);
+        this.errorCode = errorCode;
+    }
+
+    @Builder
+    public BusinessExceptionHandler(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+}
+```
 
 > ## ApiResponse
+```Java
+@Getter
+public class ApiResponse {
+    String result;
+    int resultCode;
+    String resultMsg;
+
+    @Builder
+    public ApiResponse(String result, int resultCode, String resultMsg) {
+        this.result = result;
+        this.resultCode = resultCode;
+        this.resultMsg = resultMsg;
+    }
+}
+```
 <br/>
 <hr/>
 
