@@ -59,6 +59,180 @@ create table tb_user(
 > ## Dependencies 추가
 - implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
 
+> ## UserDto 작성
+```Java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class UserDto {
+
+    // 사용자 시퀀스
+    private int userSq;
+
+    // 사용자 아이디
+    private String userId;
+
+    // 사용자 패스워드
+    private String userPw;
+
+    // 사용자 이름
+    private String userNm;
+
+    // 사용자 상태
+    private String userSt;
+
+    @Builder
+    UserDto(int userSq, String userId, String userPw, String userNm, String userSt) {
+        this.userSq = userSq;
+        this.userId = userId;
+        this.userPw = userPw;
+        this.userNm = userNm;
+        this.userSt = userSt;
+    }
+}
+```
+
+> ## UserMapper 작성
+```Java
+@Mapper
+public interface UserMapper {
+    Optional<UserDto> login(UserDto userDto);
+}
+```
+
+> ## UserMapper.xml 작성
+- MyBatis #{} 바인딩을 사용하여 SQL Injection 방지
+   - #{} : 파라미터가 String 형태로 들어와 자동적으로 파라미터 형태가 된다.
+      예를들어, #{user_id}의 user_id의 값이 abc 라면 쿼리문에는 USER_ID = 'abc'의 형태가 된다.
+      SQL Injection을 예방할 수 있어 보안측면에서 유리하다.
+
+   - ${} : 파라미터가 바로 출력된다.
+      해당 컬럼의 자료형에 맞추어 파라미터의 자료형이 변경된다.
+      SQL Injection을 예방할 수 없어 보안 측면에서 불리하다. 그러므로, 사용자의 입력을 전달할 때는 사용하지 않는 편이 좋다.
+      테이블이나 컬럼명을 파라미터로 전달하고 싶을 때 사용한다. #{} 은 자동으로 ''가 붙어서 이 경우에는 사용할 수 없다.
+```Xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hello.Login.mapper.UserMapper">
+    <!-- 로그인 -->
+    <select id="login" resultType="hello.Login.model.UserDto">
+        SELECT t1.*
+        FROM tb_user t1
+        WHERE user_id = #{userId}
+    </select>
+</mapper>
+```
+> ## UserService 인터페이스 작성
+```Java
+public interface UserService {
+    Optional<UserDto> login(UserDto userDto);
+}
+```
+
+> ## UserServiceImpl 작성
+```Java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService{
+
+    private final UserMapper userMapper;
+
+    /**
+     * 로그인 구현체
+     * @param userDto UserDto
+     * @return Optional<UserDto>
+     */
+    @Override
+    public Optional<UserDto> login(UserDto userDto) {
+        return userMapper.login(userDto);
+    }
+}
+```
+
+> ## UserDetailsDto 작성
+```Java
+@Slf4j
+@Getter
+@AllArgsConstructor
+public class UserDetailsDto implements UserDetails {
+
+    @Delegate
+    /* @Delegate : UserDto 의 메서드가 위임되어서 UserDetailsDto 에서 바로 호출이 가능 */
+    private UserDto userDto;
+    private Collection<? extends GrantedAuthority> authorities;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return userDto.getUserPw();
+    }
+
+    @Override
+    public String getUsername() {
+        return userDto.getUserNm();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return false;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return false;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return false;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return false;
+    }
+}
+```
+
+> ## UserDetailsServiceImpl 작성
+```Java
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    private final UserService userService;
+
+    public UserDetailsServiceImpl(UserService us) {
+        this.userService = us;
+    }
+    @Override
+    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
+        UserDto userDto = UserDto
+                .builder()
+                .userId(userId)
+                .build();
+
+        // 사용자 정보가 존재하지 않는 경우 예외 처리
+        if(userId == null || userId.equals("")) {
+            return userService.login(userDto)
+                    .map(u -> new UserDetailsDto(u, Collections.singleton(new SimpleGrantedAuthority(u.getUserId()))))
+                    .orElseThrow(() -> new AuthenticationServiceException(userId));
+        }
+
+        // 비밀번호가 맞지 않는 경우 예외 처리
+        else {
+            return userService.login(userDto)
+                    .map(u -> new UserDetailsDto(u, Collections.singleton(new SimpleGrantedAuthority(u.getUserId()))))
+                    .orElseThrow(() -> new BadCredentialsException(userId));
+        }
+    }
+}
+```
+
 > ## CustomAuthenticationFilter 작성
 - 아이디와 비밀번호 기반의 데이터를 Form 데이터로 전송을 받아 '인증'을 담당하는 필터
 ```Java
@@ -252,119 +426,6 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         return authentication.equals(UsernamePasswordAuthenticationToken.class);
     }
 }
-```
-
-> ## UserDto 작성
-```Java
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserDto {
-
-    // 사용자 시퀀스
-    private int userSq;
-
-    // 사용자 아이디
-    private String userId;
-
-    // 사용자 패스워드
-    private String userPw;
-
-    // 사용자 이름
-    private String userNm;
-
-    // 사용자 상태
-    private String userSt;
-
-    @Builder
-    UserDto(int userSq, String userId, String userPw, String userNm, String userSt) {
-        this.userSq = userSq;
-        this.userId = userId;
-        this.userPw = userPw;
-        this.userNm = userNm;
-        this.userSt = userSt;
-    }
-}
-```
-
-> ## UserDetailsDto 작성
-```Java
-@Slf4j
-@Getter
-@AllArgsConstructor
-public class UserDetailsDto implements UserDetails {
-
-    @Delegate
-    /* @Delegate : UserDto 의 메서드가 위임되어서 UserDetailsDto 에서 바로 호출이 가능 */
-    private UserDto userDto;
-    private Collection<? extends GrantedAuthority> authorities;
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
-
-    @Override
-    public String getPassword() {
-        return userDto.getUserPw();
-    }
-
-    @Override
-    public String getUsername() {
-        return userDto.getUserNm();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return false;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return false;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return false;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return false;
-    }
-}
-```
-
-> ## UserMapper 작성
-```Java
-@Mapper
-public interface UserMapper {
-    Optional<UserDto> login(UserDto userDto);
-}
-```
-
-> ## UserMapper.xml 작성
-- MyBatis #{} 바인딩을 사용하여 SQL Injection 방지
-   - #{} : 파라미터가 String 형태로 들어와 자동적으로 파라미터 형태가 된다.
-      예를들어, #{user_id}의 user_id의 값이 abc 라면 쿼리문에는 USER_ID = 'abc'의 형태가 된다.
-      SQL Injection을 예방할 수 있어 보안측면에서 유리하다.
-
-   - ${} : 파라미터가 바로 출력된다.
-      해당 컬럼의 자료형에 맞추어 파라미터의 자료형이 변경된다.
-      SQL Injection을 예방할 수 없어 보안 측면에서 불리하다. 그러므로, 사용자의 입력을 전달할 때는 사용하지 않는 편이 좋다.
-      테이블이나 컬럼명을 파라미터로 전달하고 싶을 때 사용한다. #{} 은 자동으로 ''가 붙어서 이 경우에는 사용할 수 없다.
-```Xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
-<mapper namespace="hello.Login.mapper.UserMapper">
-    <!-- 로그인 -->
-    <select id="login" resultType="hello.Login.model.UserDto">
-        SELECT t1.*
-        FROM tb_user t1
-        WHERE user_id = #{userId}
-    </select>
-</mapper>
 ```
 
 > ## WebSecurityConfig 작성
