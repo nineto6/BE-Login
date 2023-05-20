@@ -60,10 +60,8 @@ create table tb_user(
 - implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
 
 > ## CustomAuthenticationFilter 작성
+- 아이디와 비밀번호 기반의 데이터를 Form 데이터로 전송을 받아 '인증'을 담당하는 필터
 ```Java
-/**
- * 아이디와 비밀번호 기반의 데이터를 Form 데이터로 전송을 받아 '인증'을 담당하는 필터입니다.
- */
 @Slf4j
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
     public CustomAuthenticationFilter(AuthenticationManager authenticationManager) {
@@ -118,10 +116,8 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
 ```
 
 > ## CustomAuthSuccessHandler 작성
+- 사용자의 '인증'에 대해 성공하였을 경우 수행되는 Handler로 성공에 대한 사용자에게 반환값을 구성하여 전달
 ```Java
-/**
- * 사용자의 ‘인증’에 대해 성공하였을 경우 수행되는 Handler 로 성공에 대한 사용자에게 반환값을 구성하여 전달합니다
- */
 @Slf4j
 @Configuration
 public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
@@ -173,10 +169,8 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
 ```
 
 > ## CustomAuthFailureHandler 작성
+- 사용자의 '인증'에 대해 실패하였을 경우 수행되는 Handler로 실패에 대한 사용자에게 반환값을 구성하여 전달
 ```Java
-/**
- * 사용자의 ‘인증’에 대해 실패하였을 경우 수행되는 Handler 로 실패에 대한 사용자에게 반환값을 구성하여 전달합니다.
- */
 @Slf4j
 @Configuration
 public class CustomAuthFailureHandler implements AuthenticationFailureHandler {
@@ -220,11 +214,9 @@ public class CustomAuthFailureHandler implements AuthenticationFailureHandler {
 ```
 
 > ## CustomAuthenticationProvider 작성
+- 전달받은 사용자의 아이디와 비밀번호를 기반으로 비즈니스 로직을 처리하여 사용자의 '인증'에 대해서 검증을 수행하는 클래스
+- CustomAuthenticationFilter로 부터 생성한 토큰을 통하여 'UserDetailsService'를 통해 데이터베이스 내에서 정보를 조회
 ```Java
-/**
- * 전달받은 사용자의 아이디와 비밀번호를 기반으로 비즈니스 로직을 처리하여 사용자의 ‘인증’에 대해서 검증을 수행하는 클래스입니다.
- * CustomAuthenticationFilter 로 부터 생성한 토큰을 통하여 ‘UserDetailsService’를 통해 데이터베이스 내에서 정보를 조회합니다.
- */
 @Slf4j
 @RequiredArgsConstructor
 public class CustomAuthenticationProvider implements AuthenticationProvider {
@@ -376,11 +368,9 @@ public interface UserMapper {
 ```
 
 > ## WebSecurityConfig 작성
+- Spring Security 환경 설정을 구성하기 위한 클래스
+- 웹 서비스가 로드 될때 Spring Container에 의해 관리가 되는 클래스이며 사용자에 대한 '인증'과 '인가'에 대한 구성을 Bean 메서드로 주입을 한다.
 ```Java
-/**
- * Spring Security 환경 설정을 구성하기 위한 클래스입니다.
- * 웹 서비스가 로드 될때 Spring Container 의해 관리가 되는 클래스이며 사용자에 대한 ‘인증’과 ‘인가’에 대한 구성을 Bean 메서드로 주입을 한다.
- */
 @Slf4j
 @Configuration
 @EnableWebSecurity
@@ -529,13 +519,11 @@ public class WebSecurityConfig {
 - implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2' // DataTypeConverter 추가
 
 > ## ErrorCode
+- API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
+   - Global Error CodeList : 전역으로 발생하는 에러코드를 관리한다.
+   - custom Error CodeList : 업무 페이지에서 발생하는 에러코드를 관리한다.
+   - Error Code Constructor : 에러코드를 직접적으로 사용하기 위한 생성자를 구성한다.
 ```Java
-/**
- * [공통 코드] API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
- * Global Error CodeList : 전역으로 발생하는 에러코드를 관리한다.
- * custom Error CodeList : 업무 페이지에서 발생하는 에러코드를 관리한다.
- * Error Code Constructor : 에러코드를 직접적으로 사용하기 위한 생성자를 구성한다.
- */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public enum ErrorCode {
@@ -577,13 +565,10 @@ public enum ErrorCode {
 ```
 
 > ## SuccessCode
+- API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
+   - Success CodeList : 성공 코드를 관리한다.
+   - Success Code Constructor : 성공 코드를 사용하기 위한 생성자를 구성한다.
 ```Java
-/**
- * [공통 코드] API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
- * Success CodeList : 성공 코드를 관리한다.
- * Success Code Constructor : 성공 코드를 사용하기 위한 생성자를 구성한다.
- *
- */
 @Getter
 public enum SuccessCode {
 
@@ -623,14 +608,12 @@ public enum SuccessCode {
 ```
 
 > ## BusinessExceptionHandler
+- 예외 처리 관리를 하기위한 Business Layer인 ExceptionHandler
+- ExceptionHandler의 장점
+   1. 예외 처리를 위한 일관된 방법을 제공한다.
+   2. 예외가 발생할 경우 처리하기 위한 구조를 제공하므로 코드의 가독성을 높일 수 있다.
+   3. 예외 처리를 통해 프로그램의 안전성과 신뢰성을 높일 수 있다.
 ```Java
-/**
- * 예외 처리 관리를 하기위한 Business Layer인 ExceptionHandler
- * ExceptionHandler의 장점
- * 1. 예외 처리를 위한 일관된 방법을 제공한다.
- * 2. 예외가 발생할 경우 처리하기 위한 구조를 제공하므로 코드의 가독성을 높일 수 있다.
- * 3. 예외 처리를 통해 프로그램의 안전성과 신뢰성을 높일 수 있다.
- */
 public class BusinessExceptionHandler extends RuntimeException {
 
     @Getter
@@ -651,6 +634,8 @@ public class BusinessExceptionHandler extends RuntimeException {
 ```
 
 > ## ApiResponse
+- 요청 API 또는 Error 발생 유무에 따라 Response의 구조가 매번 다르게 리턴되는 것을 개선하기 위해 
+- ApiResponse를 만들어서 모든 API 요청에 대해 해당 타입으로 한 번 감싸서 리턴하도록 변경
 ```Java
 @Getter
 public class ApiResponse {
@@ -674,15 +659,288 @@ public class ApiResponse {
 - implementation 'io.jsonwebtoken:jjwt:0.9.1' // jwt 
 
 > ## AuthConstants 추가
+- JWT 관련된 상수로 사용 되는 파일
+```Java
+public final class AuthConstants {
+    public static final String AUTH_HEADER = "Authorization";
+    public static final String TOKEN_TYPE = "BEARER";
+}
+```
 
 > ## TokenUtils 추가
+> - JWT 관련된 토큰 Util
+```Java
+@Slf4j
+public class TokenUtils {
+
+    // @Value(value = "${custom.jwt-secret-key}")
+    private static final String jwtSecretKey = "exampleSecretKey";
+
+    /**
+     * 사용자 정보를 기반으로 토큰을 생성하여 반환 해주는 메서드
+     * @param userDto UserDto : 사용자 정보
+     * @return String : 토큰
+     */
+    public static String generateJwtToken(UserDto userDto) {
+        // 사용자 시퀀스를 기준으로 JWT 토큰을 발급하여 반환해줍니다.
+        JwtBuilder builder = Jwts.builder()
+                .setHeader(createHeader())                             // Header 구성
+                .setClaims(createClaims(userDto))                      // Payload - Claims 구성
+                .setSubject(String.valueOf(userDto.getUserSq()))       // Payload - Subject 구성
+                .signWith(SignatureAlgorithm.HS256, createSignature()) // Signature 구성
+                .setExpiration(createExpiredDate());                   // Expired Date 구성
+        return builder.compact();
+    }
+
+    /**
+     * 토큰을 기반으로 사용자 정보를 반환 해주는 메서드
+     * @param token String : 토큰
+     * @return String : 사용자 정보
+     */
+    public static String parseTokenToUserInfo(String token) {
+        return Jwts.parser()
+                .setSigningKey(jwtSecretKey)
+                .parseClaimsJwt(token)
+                .getBody()
+                .getSubject();
+    }
+
+    /**
+     * 유효한 토큰인지 확인 해주는 메서드
+     * @param token String  : 토큰
+     * @return      boolean : 유효한지 여부 반환
+     */
+    public static boolean isValidToken(String token) {
+        try {
+            Claims claims = getClaimsFormToken(token);
+
+            log.info("expireTime : {}", claims.getExpiration());
+            log.info("userId : {}", claims.get("userId"));
+            log.info("userNm : {}", claims.get("userNm"));
+
+            return true;
+        } catch (ExpiredJwtException exception) {
+            log.error("Token Expired");
+            return false;
+        } catch (JwtException exception) {
+            log.error("Token Tampered", exception);
+            return false;
+        } catch(NullPointerException exception) {
+            log.error("Token is null");
+            return false;
+        }
+    }
+
+    /**
+     * Header 내에 토큰을 추출합니다.
+     *
+     * @param header 헤더
+     * @return String
+     */
+    public static String getTokenFormHeader(String header) {
+        return header.split(" ")[1];
+    }
+
+    /**
+     * 토큰의 만료기간을 지정하는 함수
+     * @return Calendar
+     */
+    private static Date createExpiredDate() {
+        // 토큰 만료시간은 30일으로 설정
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.HOUR, 8);   // 8시간
+        // c.add(Calendar.DATE, 1);        // 1일
+        return c.getTime();
+    }
+
+    /**
+     * JWT 의 "헤더" 값을 생성해주는 메서드
+     *
+     * @return HashMap<String, Object>
+     */
+    private static Map<String, Object> createHeader() {
+        Map<String, Object> header = new HashMap<>();
+
+        header.put("typ", "JWT");
+        header.put("alg", "HS256");
+        header.put("regDate", System.currentTimeMillis());
+        return header;
+    }
+
+    /**
+     * 사용자 정보를 기반으로 클래임을 생성해주는 메서드
+     *
+     * @param userDto 사용자 정보
+     * @return Map<String, Object>
+     */
+    private static Map<String, Object> createClaims(UserDto userDto) {
+        // 공개 클레임에 사용자의 이름과 이메일을 설정하여 정보를 조회할 수 있다.
+        Map<String, Object> claims = new HashMap<>();
+
+        log.info("userId : {}", userDto.getUserId());
+        log.info("userNm : {}", userDto.getUserNm());
+
+        claims.put("userId", userDto.getUserId());
+        claims.put("userNm", userDto.getUserNm());
+        return claims;
+    }
+
+    /**
+     * JWT "서명(Signature)" 발급을 해주는 메서드
+     *
+     * @return Key
+     */
+    private static Key createSignature() {
+        byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(jwtSecretKey);
+        return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName());
+    }
+
+    /**
+     * 토큰 정보를 기반으로 Claims 정보를 반환받는 메서드
+     * @param token : 토큰
+     * @return Claims : Claims
+     */
+    private static Claims getClaimsFormToken(String token) {
+        return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(jwtSecretKey))
+                .parseClaimsJws(token).getBody();
+    }
+
+    /**
+     * 토큰을 기반으로 사용자 아이디를 반환받는 메서드
+     * @param token : 토큰
+     * @return String : 사용자 아이디
+     */
+    public static String getUserIdFormToken(String token) {
+        Claims claims = getClaimsFormToken(token);
+        return claims.get("userId").toString();
+    }
+
+    /**
+     * 토큰을 기반으로 사용자 닉네임을 반환받는 메서드
+     * @param token : 토큰
+     * @return String : 사용자 닉네임
+     */
+    public static String getUserNmFormToken(String token) {
+        Claims claims = getClaimsFormToken(token);
+        return claims.get("userNm").toString();
+    }
+}
+```
 
 > ## JwtAuthorizationFilter 추가
+> - 지정한 URL 별 JWT 유효성 검증을 수행하며 직접적인 사용자 '인증'을 확인한다.
+```Java
+@Slf4j
+public class JwtAuthorizationFilter extends OncePerRequestFilter {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
+        List<String> list = Arrays.asList(
+                "/api/user/login",  // 로그인
+                "/api/test/generateToken",
+                "/api/user/signup", // 회원가입
+                "/api/user/duplicheck" // 회원가입 하위 사용 가능 ID 확인
+        );
+
+        // 2. 토큰이 필요하지 않은 API URL 의 경우 => 로직 처리 없이 다음 필터로 이동
+        if(list.contains(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 3. OPTIONS 요청일 경우 => 로직 처리 없이 다음 필터로 이동
+        if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // [STEP1] Client 에서 API 를 요청할 때 Header 를 확인합니다.
+        String header = request.getHeader(AuthConstants.AUTH_HEADER);
+        log.debug("[+] header Check: {}", header);
+
+        try {
+            // [STEP2-1] Header 내에 토큰이 존재하는 경우
+            if(header != null && !header.equalsIgnoreCase("")) {
+
+                // [STEP2] Header 내에 토큰을 추출합니다.
+                String token = TokenUtils.getTokenFormHeader(header);
+
+                // [STEP3] 추출한 토큰이 유효한지 여부를 체크합니다.
+                if(TokenUtils.isValidToken(token)) {
+
+                    // [STEP4] 토큰을 기반으로 사용자 아이디를 반환 받는 메서드
+                    String userId = TokenUtils.getUserIdFormToken(token);
+                    log.debug("[+] userId Check: {}", userId);
+
+                    // [STEP5] 사용자 아이디가 존재하는지 여부 체크
+                    if(userId != null && !userId.equalsIgnoreCase("")) {
+                        filterChain.doFilter(request, response);
+                    } else {
+                        // 사용자 아이디가 존재 하지 않을 경우
+                        throw new BusinessExceptionHandler("TOKEN isn't userId", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                    }
+                } else {
+                    // 토큰이 유효하지 않은 경우
+                    throw new BusinessExceptionHandler("TOKEN is invalid", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                }
+            }
+            else {
+                // [STEP2-1] 토큰이 존재하지 않는 경우
+                throw new BusinessExceptionHandler("Token is null", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+            }
+        } catch (Exception e) {
+            // Token 내에 Exception 이 발생 하였을 경우 => 클라이언트에 응답값을 반환하고 종료합니다.
+            response.setCharacterEncoding("UTF-8");
+            response.setContentType("application/json");
+            PrintWriter printWriter = response.getWriter();
+            JSONObject jsonObject = jsonResponseWrapper(e);
+            printWriter.print(jsonObject);
+            printWriter.flush();
+            printWriter.close();
+        }
+    }
+
+    /**
+     * 토큰 관련 Exception 발생 시 예외 응답값 구성
+     * @param e Exception
+     * @return JSONObject
+     */
+    private JSONObject jsonResponseWrapper(Exception e) {
+        String resultMsg = "";
+
+        // JWT 토큰 만료
+        if(e instanceof ExpiredJwtException) {
+            resultMsg = "TOKEN Expired";
+        }
+        // JWT 허용된 토큰이 아님
+        else if(e instanceof SignatureException) {
+            resultMsg = "TOKEN SignatureException Login";
+        }
+        // JWT 토큰내에서 오류 발생 시
+        else if(e instanceof JwtException) {
+            resultMsg = "TOKEN Parsing JwtException";
+        }
+        // 이외 JWT 토큰내에서 오류 발생
+        else {
+            resultMsg = "OTHER TOKEN ERROR";
+        }
+
+        HashMap<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("status", 401);
+        jsonMap.put("code", "9999");
+        jsonMap.put("message", resultMsg);
+        jsonMap.put("reason", e.getMessage());
+        JSONObject jsonObject = new JSONObject(jsonMap);
+        log.error(resultMsg, e);
+        return jsonObject;
+    }
+}
+```
 <br/>
 <hr/>
 
 ##### 20230506
-> ## 인증서 없이 개발 전용 SSL 인증 추가
+> ## 개발 전용 SSL 인증 추가
 <br/>
 <hr/>
 
