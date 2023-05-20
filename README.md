@@ -56,9 +56,6 @@ create table tb_user(
 );
 ```
 
-> ## Dependencies 추가
-- implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
-
 > ## UserDto 작성
 ```Java
 @Getter
@@ -232,6 +229,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 }
 ```
+
+> ## Dependencies 추가
+- implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
 
 > ## CustomAuthenticationFilter 작성
 - 아이디와 비밀번호 기반의 데이터를 Form 데이터로 전송을 받아 '인증'을 담당하는 필터
@@ -997,11 +997,63 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     }
 }
 ```
+
+> ## TestController 작성
+```Java
+@Slf4j
+@RestController
+@RequestMapping("api/test")
+public class TestController {
+
+    @PostMapping("/generateToken")
+    @Operation(summary = "토큰 발급", description = "사용자 정보를 기반으로 JWT 를 발급하는 API")
+    public ResponseEntity<ApiResponse> selectCodeList(@RequestBody UserDto userDto) {
+        String resultToken = TokenUtils.generateJwtToken(userDto);
+
+        ApiResponse ar = ApiResponse.builder()
+                // BEARER {토큰} 형태로 반환을 해줍니다.
+                .result(AuthConstants.TOKEN_TYPE + " " + resultToken)
+                .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
+                .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
+                .build();
+
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+}
+```
+
+> ## .../api/test/generateToken URL에 Front에서 Back 서버로 요청 및 응답 확인
+- HTTP Body JSON 이미지
+<img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_02.png">
+
+> ## ...api/user/login URL에 Front에서 Back 서버로 요청 및 응답 확인시 문제 발생
+- HTTP 응답시 Authorization JWT 토큰의 헤더 값을 받지 못하는 상황 발생
 <br/>
 <hr/>
 
 ##### 20230506
+> ## WebSecurityConfig의 corsConfigurationSource()에 코드 추가
+- configuration.addExposedHeader(AuthConstants.AUTH_HEADER);
+
 > ## 개발 전용 SSL 인증 추가
+
+> ## ssl-local.properties 작성
+```Text
+# SSL (https)
+server.ssl.key-store=C:/Program Files/Java/jdk-17/bin/nineto6-keystore.p12
+server.ssl.key-store-type=PKCS12
+server.ssl.key-store-password=123456
+server.ssl.key-alias=nineto6-keystore
+server.http2.enabled=true
+```
+> ## LoginApplication에 Annotation 추가
+```Java
+@PropertySource("classpath:ssl-local.properties")
+```
+
+> ## 문제 해결
+- 응답시 Front에서 브라우저로 헤더값 확인 이미지
+<img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
 <br/>
 <hr/>
 
@@ -1023,14 +1075,6 @@ create table tb_board(
 
 ##### 20230510
 > ## TokenUtils의 토큰을 기반으로 사용자 닉네임을 반환받는 메서드 작성
-
-> ## WebConfig의 CorsConfiguration에서 addExposedHeader("Authorization") 추가
-
-> ## TestController 작성
-
-> ## .../api/test/generateToken URL에 Front에서 Back 서버로 요청 및 응답 확인
-- HTTP Body JSON 내용 이미지
-<img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_02.png">
 <br/>
 <hr/>
 
