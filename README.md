@@ -1068,26 +1068,223 @@ create table tb_board(
 );
 ```
 > ## UserMapper Insert 추가 (회원가입)
+```Java
+@Mapper
+public interface UserMapper {
+    void save(UserDto userDto); // 추가
+    Optional<UserDto> login(UserDto userDto);
+}
+```
+- UserMapper XML 추가
+```XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hello.Login.mapper.UserMapper">
+
+    <!-- 회원가입 추가 -->
+    <insert id="save" useGeneratedKeys="true" keyProperty="userSq">
+        INSERT INTO TB_USER
+        (USER_ID, USER_PW, USER_NM, USER_ST)
+        VALUES (#{userId}, #{userPw}, #{userNm}, #{userSt})
+    </insert>
+
+    <!-- 로그인 -->
+    <select id="login" resultType="hello.Login.model.UserDto">
+        SELECT t1.*
+        FROM tb_user t1
+        WHERE user_id = #{userId}
+    </select>
+</mapper>
+```
 
 > ## UserMapperTest 작성
+```Java
+@SpringBootTest
+@Transactional
+@Slf4j
+class UserMapperTest {
+
+    @Autowired UserMapper userMapper;
+
+    @Test
+    void save() {
+        //given
+        UserDto user = UserDto.builder()
+                .userId("hello123")
+                .userPw("123123")
+                .userNm("헬로")
+                .userSt("X")
+                .build();
+
+        // when
+        userMapper.save(user);
+        log.info("userSq = {}", user.getUserSq());
+
+        // then
+        Optional<UserDto> login = userMapper.login(user);
+
+        log.info("login is empty = {}", login.isEmpty());
+        Assertions.assertThat(login.isEmpty()).isFalse();
+    }
+}
+```
 <br/>
 <hr/>
 
 ##### 20230510
 > ## TokenUtils의 토큰을 기반으로 사용자 닉네임을 반환받는 메서드 작성
+```Java
+/**
+     * @param token : 토큰
+     * @return String : 사용자 닉네임
+     */
+    public static String getUserNmFormToken(String token) {
+        Claims claims = getClaimsFormToken(token);
+        return claims.get("userNm").toString();
+    }
+```
 <br/>
 <hr/>
 
 ##### 20230511
 > ## BoardDto 작성
+```Java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class BoardDto {
+    private int boardSq;
+    private String userNm;
+    private String boardTitle;
+    private String boardContent;
+
+    @Builder
+    public BoardDto(int boardSq, String userNm, String boardTitle, String boardContent) {
+        this.boardSq = boardSq;
+        this.userNm = userNm;
+        this.boardTitle = boardTitle;
+        this.boardContent = boardContent;
+    }
+}
+```
 
 > ## BoardMapper 작성
+```Java
+@Mapper
+public interface BoardMapper {
+    void save(BoardDto boardDto);
+    List<BoardDto> findAll();
+}
+
+```
+- BoardMapper XML 작성
+```XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hello.Login.mapper.BoardMapper">
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="boardSq">
+        INSERT INTO TB_BOARD
+        (USER_NM, BOARD_TITLE, BOARD_CONTENT)
+        VALUES (#{userNm}, #{boardTitle}, #{boardContent})
+    </insert>
+
+    <!-- 전체 조회 -->
+    <select id="findAll" resultType="hello.Login.model.BoardDto">
+        SELECT t1.*
+        FROM tb_board t1
+    </select>
+</mapper>
+```
 
 > ## BoardMapperTest 작성
+```Java
+@SpringBootTest
+@Transactional
+@Slf4j
+class BoardMapperTest {
+    @Autowired BoardMapper boardMapper;
+
+    @Test
+    @DisplayName("게시글 저장 테스트")
+    void save() {
+        // given
+
+        BoardDto boardDto = BoardDto.builder()
+                .userNm("홍길동")
+                .boardTitle("안녕하세요")
+                .boardContent("안녕하세요 첫 게시글입니다.")
+                .build();
+
+        // when
+        boardMapper.save(boardDto);
+
+        //then
+        List<BoardDto> list = boardMapper.findAll();
+        assertThat(list.get(0).getBoardSq()).isEqualTo(boardDto.getBoardSq());
+        assertThat(list.get(0).getUserNm()).isEqualTo("홍길동");
+        assertThat(list.get(0).getBoardTitle()).isEqualTo("안녕하세요");
+        assertThat(list.get(0).getBoardContent()).isEqualTo("안녕하세요 첫 게시글입니다.");
+    }
+
+    @Test
+    @DisplayName("게시글 모두 조회 테스트")
+    void findAll() {
+        UserDto user = UserDto.builder().build();
+        // given
+        BoardDto boardDto1 = BoardDto.builder()
+                .userNm("홍길동")
+                .boardTitle("안녕하세요")
+                .boardContent("안녕하세요 첫번 째 게시글입니다.")
+                .build();
+        BoardDto boardDto2 = BoardDto.builder()
+                .userNm("길동이")
+                .boardTitle("안녕")
+                .boardContent("안녕하세요 두번 째 게시글입니다.")
+                .build();
+
+        boardMapper.save(boardDto1);
+        boardMapper.save(boardDto2);
+
+        // when
+        List<BoardDto> listBoard = boardMapper.findAll();
+
+        // then
+        assertThat(listBoard.size()).isEqualTo(2);
+    }
+}
+```
 
 > ## BoardService 인터페이스 작성
+```Java
+public interface BoardService {
+    BoardDto create(BoardDto boardDto);
+    List<BoardDto> findList();
+}
+```
 
 > ## BoardService의 구현체 BoardServiceImpl 작성
+```Java
+@Service
+@AllArgsConstructor
+public class BoardServiceImpl implements BoardService{
+    private final BoardMapper boardMapper;
+
+    @Override
+    @Transactional
+    public BoardDto create(BoardDto boardDto) {
+        boardMapper.save(boardDto);
+        return boardDto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BoardDto> findList() {
+        return boardMapper.findAll();
+    }
+}
+```
 <br/>
 <hr/>
 
