@@ -453,7 +453,7 @@ public class WebSecurityConfig {
      * @return SecurityFilterChain
      * @throws Exception exception
      */
-    @Bean
+     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.debug("[+] WebSecurityConfig Start !");
 
@@ -465,7 +465,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
 
                 // [STEP3] Spring Security JWT Filter Load
-                //.addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class)
+                //.addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class) // JWT 관련 로직(주석 처리)
 
                 // [STEP4] Session 기반의 인증기반을 사용하지 않고 추후 JWT 를 이용하여 인증 예정
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -554,6 +554,39 @@ public class WebSecurityConfig {
 > ## CORS 문제 해결 및 설정 코드 작성
 - 프론트와 요청을 주고받을 수 있게 WebSecurityConfig에 코드 추가 및 Bean 등록
 ```Java
+@Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.debug("[+] WebSecurityConfig Start !");
+
+        http
+                // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf 를 사용하지 않는다.
+                .csrf().disable()
+
+                // [STEP2] 토큰을 활용하는 경우 모든 요청에 대해 '인가'에 대해서 적용
+                .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
+
+                // [STEP3] Spring Security JWT Filter Load
+                //.addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class)
+
+                // [STEP4] Session 기반의 인증기반을 사용하지 않고 추후 JWT 를 이용하여 인증 예정
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+
+                .and()
+                // [STEP5] form 기반의 로그인에 대해 비 활성화하며 커스텀으로 구성한 필터를 사용한다.
+                .formLogin().disable()
+
+                // [STEP6] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
+                .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+                // CORS 설정
+                .cors().configurationSource(corsConfigurationSource()); // ** 추가 **
+                // [STEP7] 최종 구성한 값을 사용함.
+        return http.build();
+    }
+/**
+ * 9. CORS 설정
+ * @return
+ */
 @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -998,6 +1031,48 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 }
 ```
 
+> ## WebSecurityConfig JWT 관련 코드 추가
+```Java
+@Bean
+ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+     log.debug("[+] WebSecurityConfig Start !");
+
+     http
+             // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf 를 사용하지 않는다.
+             .csrf().disable()
+
+             // [STEP2] 토큰을 활용하는 경우 모든 요청에 대해 '인가'에 대해서 적용
+             .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
+
+             // [STEP3] Spring Security JWT Filter Load
+             .addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class) // ** 추가 **
+
+             // [STEP4] Session 기반의 인증기반을 사용하지 않고 추후 JWT 를 이용하여 인증 예정
+             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+
+             .and()
+             // [STEP5] form 기반의 로그인에 대해 비 활성화하며 커스텀으로 구성한 필터를 사용한다.
+             .formLogin().disable()
+
+             // [STEP6] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
+             .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+
+             // CORS 설정
+             .cors().configurationSource(corsConfigurationSource());
+     // [STEP7] 최종 구성한 값을 사용함.
+     return http.build();
+ }
+ 
+ /**
+  * 10. JWT 토큰을 통하여서 사용자를 인증합니다.
+  * @return JwtAuthorizationFilter
+  */
+ @Bean
+ public JwtAuthorizationFilter jwtAuthorizationFilter() {
+     return new JwtAuthorizationFilter();
+ }
+```
+
 > ## TestController 작성
 ```Java
 @Slf4j
@@ -1290,8 +1365,72 @@ public class BoardServiceImpl implements BoardService{
 
 ##### 20230512
 > ## BoardController REST 컨트롤러 작성
+```Java
+@RestController
+@RequestMapping("/api/board")
+@AllArgsConstructor
+@Slf4j
+public class BoardController {
+    private final BoardService boardService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse> createBoard(@RequestBody BoardDto boardDto, HttpServletRequest request) {
+        String userNm = TokenUtils.getUserNmFormToken(
+                TokenUtils.getTokenFormHeader(
+                        request.getHeader(AuthConstants.AUTH_HEADER
+                        )));
+
+        BoardDto board = BoardDto.builder()
+                .userNm(userNm)
+                .boardTitle(boardDto.getBoardTitle())
+                .boardContent(boardDto.getBoardContent())
+                .build();
+
+        boardService.create(board);
+
+        ApiResponse ar = ApiResponse.builder()
+                .result(null)
+                .resultCode(SuccessCode.INSERT_SUCCESS.getStatus())
+                .resultMsg(SuccessCode.INSERT_SUCCESS.getMessage())
+                .build();
+
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+
+    @GetMapping
+    public ResponseEntity<ObjectApiResponse> findAllBoard() {
+
+        List<BoardDto> list = boardService.findList();
+
+        ObjectApiResponse ar = ObjectApiResponse.builder()
+                .result(list)
+                .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
+                .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
+                .build();
+
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+}
+```
 
 > ## ObjectApiResponse 작성
+- ObjectMapper를 이용하여 기존에 쓰던 ApiResponse의 Result 값으로 들어가게 String으로 변환하여 응답하는 식으로 공통으로 묶을 수 있지만,
+- 코드를 간략화하기 위해 ObjectApiResponse를 따로 만들어 Controller의 코드를 단순화 함
+```Java
+@Getter
+public class ObjectApiResponse {
+    Object result;
+    int resultCode;
+    String resultMsg;
+
+    @Builder
+    public ObjectApiResponse(Object result, int resultCode, String resultMsg) {
+        this.result = result;
+        this.resultCode = resultCode;
+        this.resultMsg = resultMsg;
+    }
+}
+```
 <br/>
 <hr/>
 
@@ -1309,5 +1448,4 @@ public class BoardServiceImpl implements BoardService{
 <hr/>
 
 ##### 20230516
-> ## JwtAuthorizationFilter 코드 추가
 > ## 테스트
