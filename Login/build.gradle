@@ -19,6 +19,9 @@ repositories {
 }
 
 dependencies {
+	// Redis 추가
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
 	// Swagger 추가
 	implementation 'org.springdoc:springdoc-openapi-ui:1.6.12'
 
@@ -33,6 +36,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	// Mybatis 추가
 	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.3.0'
+
+	// validation
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
