@@ -3,6 +3,9 @@ package hello.Login.common.utils;
 import hello.Login.model.UserDto;
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
@@ -16,10 +19,16 @@ import java.util.Map;
  * JWT 관련된 토큰 Util
  */
 @Slf4j
+@Component
 public class TokenUtils {
 
-    // @Value(value = "${custom.jwt-secret-key}")
-    private static final String jwtSecretKey = "exampleSecretKey";
+    private static String jwtSecretKey;
+
+    // application.properties 에서 jwtSecretKey 값 가져오기
+    @Value(value = "${custom.jwt-secret-key}")
+    public void setKey(String value) {
+        jwtSecretKey = value;
+    }
 
     /**
      * 사용자 정보를 기반으로 토큰을 생성하여 반환 해주는 메서드
@@ -91,9 +100,9 @@ public class TokenUtils {
      * @return Calendar
      */
     private static Date createExpiredDate() {
-        // 토큰 만료시간은 30일으로 설정
+        // 토큰 만료시간은 30분으로 설정
         Calendar c = Calendar.getInstance();
-        c.add(Calendar.HOUR, 8);   // 8시간
+        c.add(Calendar.MINUTE, 30);   // 30분
         // c.add(Calendar.DATE, 1);        // 1일
         return c.getTime();
     }
