@@ -76,7 +76,7 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
             refreshTokenRedisRepository.save(RefreshToken.builder()
                     .id(null)
                     .ip(NetUtils.getClientIp(request))
-                    .userDto(userDto)
+                    .userId(userDto.getUserId())
                     .refreshToken(jwtToken.getRefreshToken())
                     .build());
             //log.info("IP : {}", NetUtils.getClientIp(request)); // 클라이언트 IP 확인 로그

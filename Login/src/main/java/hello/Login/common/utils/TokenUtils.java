@@ -45,14 +45,14 @@ public class TokenUtils {
         // 사용자 시퀀스를 기준으로 JWT 토큰을 발급하여 반환해줍니다.
         JwtBuilder accessBuilder = Jwts.builder()
                 .setHeader(createHeader())                                             // Header 구성
-                .setClaims(createClaims(userDto))                                      // Payload - Claims 구성
+                .setClaims(createAccessClaims(userDto))                                // Payload - Claims 구성
                 .setSubject(String.valueOf(userDto.getUserSq()))                       // Payload - Subject 구성
                 .signWith(SignatureAlgorithm.HS256, createSignature(accessSecretKey))  // Signature 구성
                 .setExpiration(createAccessTokenExpiredDate());                        // Expired Date 구성
 
         JwtBuilder refreshBuilder = Jwts.builder()
                 .setHeader(createHeader())                                             // Header 구성
-                .setClaims(createClaims(userDto))                                      // Payload - Claims 구성
+                .setClaims(createRefreshClaims(userDto))                               // Payload - Claims 구성
                 .setSubject(String.valueOf(userDto.getUserSq()))                       // Payload - Subject 구성
                 .signWith(SignatureAlgorithm.HS256, createSignature(refreshSecretKey)) // Signature 구성
                 .setExpiration(createRefreshTokenExpiredDate());                       // Expired Date 구성
@@ -86,8 +86,8 @@ public class TokenUtils {
             Claims claims = getAccessTokenToClaimsFormToken(token);
 
             log.info("expireTime : {}", claims.getExpiration());
-            log.info("userId : {}", claims.get("userId"));
-            log.info("userNm : {}", claims.get("userNm"));
+            log.info("userId : {}", claims.get("uid"));
+            log.info("userNm : {}", claims.get("unm"));
 
             return true;
         } catch (ExpiredJwtException exception) {
@@ -112,8 +112,8 @@ public class TokenUtils {
             Claims claims = getRefreshTokenToClaimsFormToken(token);
 
             log.info("expireTime : {}", claims.getExpiration());
-            log.info("userId : {}", claims.get("userId"));
-            log.info("userNm : {}", claims.get("userNm"));
+            log.info("userId : {}", claims.get("uid"));
+            log.info("userNm : {}", claims.get("unm"));
 
             return true;
         } catch (ExpiredJwtException exception) {
@@ -144,7 +144,7 @@ public class TokenUtils {
      */
     private static Date createAccessTokenExpiredDate() {
         Calendar c = Calendar.getInstance();
-        c.add(Calendar.SECOND, 1);   // 30분으로 설정
+        c.add(Calendar.MINUTE, 30);   // 30분으로 설정
         return c.getTime();
     }
 
@@ -172,19 +172,40 @@ public class TokenUtils {
     }
 
     /**
-     * 사용자 정보를 기반으로 클래임을 생성해주는 메서드
+     * Access-Token 전용 사용자 정보를 기반으로 클래임을 생성해주는 메서드
      * @param userDto 사용자 정보
      * @return Map<String, Object>
      */
-    private static Map<String, Object> createClaims(UserDto userDto) {
+    private static Map<String, Object> createAccessClaims(UserDto userDto) {
         // 공개 클레임에 사용자의 이름과 이메일을 설정하여 정보를 조회할 수 있다.
+        // JWT 를 최대한 짧게 만들기 위해 클레임네임을 전부 약자로 변경
+        // 클레임셋의 내용이 많아지면 토큰의 길이도 같이 길어지기 때문에 되도록 최소화한다.
         Map<String, Object> claims = new HashMap<>();
 
         log.info("userId : {}", userDto.getUserId());
         log.info("userNm : {}", userDto.getUserNm());
 
-        claims.put("userId", userDto.getUserId());
-        claims.put("userNm", userDto.getUserNm());
+        claims.put("uid", userDto.getUserId());
+        claims.put("unm", userDto.getUserNm());
+        return claims;
+    }
+
+    /**
+     * Refresh-Token 전용 사용자 정보를 기반으로 클래임을 생성해주는 메서드
+     * @param userDto 사용자 정보
+     * @return Map<String, Object>
+     */
+    private static Map<String, Object> createRefreshClaims(UserDto userDto) {
+        // 공개 클레임에 사용자의 이름과 이메일을 설정하여 정보를 조회할 수 있다.
+        // JWT 를 최대한 짧게 만들기 위해 클레임네임을 전부 약자로 변경
+        // 클레임셋의 내용이 많아지면 토큰의 길이도 같이 길어지기 때문에 되도록 최소화한다.
+        Map<String, Object> claims = new HashMap<>();
+
+        log.info("userId : {}", userDto.getUserId());
+        log.info("userNm : {}", userDto.getUserNm());
+
+        claims.put("uid", userDto.getUserId());
+        claims.put("unm", userDto.getUserNm());
         return claims;
     }
 
@@ -225,7 +246,7 @@ public class TokenUtils {
      */
     public static String getUserIdFormAccessToken(String token) {
         Claims claims = getAccessTokenToClaimsFormToken(token);
-        return claims.get("userId").toString();
+        return claims.get("uid").toString();
     }
 
     /**
@@ -233,8 +254,8 @@ public class TokenUtils {
      * @param token : 토큰
      * @return String : 사용자 닉네임
      */
-    public static String getUserNmFormToken(String token) {
+    public static String getUserNmFormAccessToken(String token) {
         Claims claims = getAccessTokenToClaimsFormToken(token);
-        return claims.get("userNm").toString();
+        return claims.get("unm").toString();
     }
 }

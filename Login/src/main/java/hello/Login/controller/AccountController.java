@@ -9,8 +9,10 @@ import hello.Login.common.utils.TokenUtils;
 import hello.Login.config.redis.RedisRepository;
 import hello.Login.config.redis.RefreshToken;
 import hello.Login.controller.response.ApiResponse;
+import hello.Login.model.UserDto;
 import hello.Login.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.apache.el.parser.Token;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/reissue")
@@ -46,26 +49,34 @@ public class AccountController {
                 String currentIpAddress = NetUtils.getClientIp(request);
 
                 if (refreshToken.getIp().equals(currentIpAddress)) {
-                    // 6. Redis 에 저장된 RefreshToken 정보를 기반으로 JWT Token 생성
-                    JwtToken jwtToken = TokenUtils.generateJwtToken(refreshToken.getUserDto());
-                    response.addHeader(AuthConstants.AUTH_ACCESS, jwtToken.getAccessToken());
-                    response.addHeader(AuthConstants.AUTH_REFRESH, jwtToken.getRefreshToken());
 
-                    // 7. Redis RefreshToken update
-                    refreshTokenRedisRepository.save(RefreshToken.builder()
-                                    .id(refreshToken.getId())
-                                    .ip(currentIpAddress)
-                                    .userDto(refreshToken.getUserDto())
-                                    .refreshToken(jwtToken.getRefreshToken())
+                    // findById 실행 후 userDto 값 가져오기
+                    Optional<UserDto> userDto = userService.login(UserDto.builder()
+                            .userId(refreshToken.getUserId())
                             .build());
 
-                    ApiResponse ar = ApiResponse.builder()
-                            .result("Reissue Success")
-                            .resultCode(SuccessCode.UPDATE_SUCCESS.getStatus())
-                            .resultMsg(SuccessCode.UPDATE_SUCCESS.getMessage())
-                            .build();
+                    if(userDto.isPresent()) { // userDto 값이 있을 경우 (null 이 아닌 경우)
+                        // 6. Redis 에 저장된 RefreshToken 정보를 기반으로 JWT Token 생성
+                        JwtToken jwtToken = TokenUtils.generateJwtToken(userDto.get());
+                        response.addHeader(AuthConstants.AUTH_ACCESS, jwtToken.getAccessToken());
+                        response.addHeader(AuthConstants.AUTH_REFRESH, jwtToken.getRefreshToken());
 
-                    return new ResponseEntity<>(ar, HttpStatus.OK);
+                        // 7. Redis RefreshToken update
+                        refreshTokenRedisRepository.save(RefreshToken.builder()
+                                .id(refreshToken.getId())
+                                .ip(currentIpAddress)
+                                .userId(refreshToken.getUserId())
+                                .refreshToken(jwtToken.getRefreshToken())
+                                .build());
+
+                        ApiResponse ar = ApiResponse.builder()
+                                .result("Reissue Success")
+                                .resultCode(SuccessCode.UPDATE_SUCCESS.getStatus())
+                                .resultMsg(SuccessCode.UPDATE_SUCCESS.getMessage())
+                                .build();
+
+                        return new ResponseEntity<>(ar, HttpStatus.OK);
+                    }
                 }
             }
         }
