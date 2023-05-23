@@ -1449,3 +1449,66 @@ public class ObjectApiResponse {
 
 ##### 20230516
 > ## 테스트
+
+##### 20230522
+> ## Secret-Key 별도로 분리 후 관리
+- org.springframework.beans.factory.annotation.Value를 이용
+- application.properties 에서 jwtSecretKey 값 가져오기
+- JwtUtils
+```Java
+    private static String jwtSecretKey;
+
+    @Value(value = "${custom.jwt-secret-key}")
+    public void setKey(String value) {
+        jwtSecretKey = value;
+    }
+```
+- application.properties
+```Text
+# Secret Key
+custom.jwt-secret-key=exampleSecretKey
+```
+> ## 계획
+- 현재 토큰 만료 기간이 8시간으로 되어있는데 만일 토큰이 탈취가 됐을 경우
+심각한 문제가 발생하게 된다. 그러면 매우 짧은 만료 기간을 가지게 하면 사용자는 매번 토큰이 만료가될 시 로그인을 새로 하여, 새롭게 토큰을 받아야 한다.
+- 보안과 사용자의 편리함을 둘다 가져가는 방법을 찾게 되었는데, 찾은것이 Refresh-Token 방식이다.
+- Access-Token은 짧게(30분) 만료 기간, Refresh-Token은 길게(3일) 만료기간을 갖는다.
+- 서버는 로그인 성공시 Access-Token 과 Refresh-Token을 발급한다.(header에 응답)
+    - 이때 Redis(인메모리 데이터 저장소)에 Refresh-Token과 요청한 IP 그리고 userId(토큰 생성시 claim 필요)를 함께 저장한다.
+- 클라이언트는 localStorage를 이용하여 Access-Token 과 Refresh-Token을 저장한다.
+- 클라이언트는 인증이 필요한 URL 요청시(/api/board GET.. 등) Access-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
+- 서버는 Access-Token을 받고 인증된 토큰인지 확인 후 처리를 하고 응답한다.
+- Access-Token이 만료되었을 경우에는 에러 메세지를 응답하게 된다.
+- 클라이언트는 토큰이 만료되었을 경우 .../api/reissue URL에 Refresh-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
+- 서버는 Refresh-Token을 받고 인증된 토큰인지 확인 후(만료가 되었는지도 확인) Access-Token 과 Refresh-Token을 함께 발급하여 응답한다.(이때 Redis에 새로 발급한 토큰을 Update)
+> ## Redis 추가
+- build.gradle
+```Text
+// Redis 추가
+implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+```
+- application.properties
+```Text
+# Redis
+spring.redis.host=localhost
+spring.redis.port=6379
+```
+
+##### 20230523
+> ## RedisConfig 작성
+> ## RedisRepository 작성
+> ## RefreshToken 작성
+> ## JwtToken 작성
+> ## TokenUtils 코드 변경
+
+##### 20230524
+> ## NetUtils 작성
+- HttpServletRequest 정보를 가져와서 header 내에 IP 정보를 String으로 반환하는 메서드 getClinetIp()
+> ## AuthConstatns 코드 변경
+> ## WebSecurityConfig 코드 변경
+> ## CustomAuthSuccessHandler 코드 변경
+> ## TestController 코드 변경 및 테스트
+> ## AccountController 작성 및 테스트
+> ## TokenUtils 코드 변경
+> ## CustomAuthSuccessHandler 코드 변경
+> ## AccountController 코드 변경
