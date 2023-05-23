@@ -3,6 +3,7 @@ package hello.Login.controller;
 import hello.Login.common.codes.AuthConstants;
 import hello.Login.common.codes.SuccessCode;
 import hello.Login.common.utils.TokenUtils;
+import hello.Login.config.JwtToken;
 import hello.Login.controller.response.ApiResponse;
 import hello.Login.model.UserDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,11 +23,12 @@ public class TestController {
     @PostMapping("/generateToken")
     @Operation(summary = "토큰 발급", description = "사용자 정보를 기반으로 JWT 를 발급하는 API")
     public ResponseEntity<ApiResponse> selectCodeList(@RequestBody UserDto userDto) {
-        String resultToken = TokenUtils.generateJwtToken(userDto);
+        JwtToken jwtToken = TokenUtils.generateJwtToken(userDto);
 
         ApiResponse ar = ApiResponse.builder()
                 // BEARER {토큰} 형태로 반환을 해줍니다.
-                .result(AuthConstants.TOKEN_TYPE + " " + resultToken)
+                .result("Access-Token"  + " " + jwtToken.getAccessToken()
+                        + "Refresh-Token" + " " + jwtToken.getRefreshToken())
                 .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
                 .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
                 .build();
