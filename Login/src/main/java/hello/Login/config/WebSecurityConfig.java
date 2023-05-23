@@ -6,6 +6,8 @@ import hello.Login.config.filter.JwtAuthorizationFilter;
 import hello.Login.config.handler.CustomAuthFailureHandler;
 import hello.Login.config.handler.CustomAuthSuccessHandler;
 import hello.Login.config.handler.CustomAuthenticationProvider;
+import hello.Login.config.redis.RedisRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +33,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Slf4j
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class WebSecurityConfig {
+
+    private final RedisRepository redisRepository;
 
     /**
      * 1. 정적 자원(Resource)에 대해서 인증된 사용자가 정적 자원의 접근에 대해 ‘인가’에 대한 설정을 담당하는 메서드이다.
@@ -128,7 +133,7 @@ public class WebSecurityConfig {
      */
     @Bean
     public CustomAuthSuccessHandler customLoginSuccessHandler() {
-        return new CustomAuthSuccessHandler();
+        return new CustomAuthSuccessHandler(redisRepository);
     }
 
     /**
@@ -153,6 +158,8 @@ public class WebSecurityConfig {
         configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);
         configuration.addExposedHeader(AuthConstants.AUTH_HEADER);
+        configuration.addExposedHeader(AuthConstants.AUTH_ACCESS);
+        configuration.addExposedHeader(AuthConstants.AUTH_REFRESH);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

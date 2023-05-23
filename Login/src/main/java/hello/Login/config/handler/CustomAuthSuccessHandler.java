@@ -2,15 +2,22 @@ package hello.Login.config.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hello.Login.common.codes.AuthConstants;
+import hello.Login.common.utils.NetUtils;
+import hello.Login.config.JwtToken;
 import hello.Login.common.utils.TokenUtils;
+import hello.Login.config.redis.RedisRepository;
+import hello.Login.config.redis.RefreshToken;
 import hello.Login.model.UserDetailsDto;
 import hello.Login.model.UserDto;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -24,7 +31,10 @@ import java.util.HashMap;
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+
+    private final RedisRepository refreshTokenRedisRepository;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
@@ -58,8 +68,18 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
             jsonObject = new JSONObject(responseMap);
 
             // TODO: 추후 JWT 발급에 사용할 예정
-            String token = TokenUtils.generateJwtToken(userDto);
-            response.addHeader(AuthConstants.AUTH_HEADER, AuthConstants.TOKEN_TYPE + " " + token);
+            JwtToken jwtToken = TokenUtils.generateJwtToken(userDto);
+            response.addHeader(AuthConstants.AUTH_ACCESS, jwtToken.getAccessToken());
+            response.addHeader(AuthConstants.AUTH_REFRESH, jwtToken.getRefreshToken());
+
+            // Redis 정보 저장
+            refreshTokenRedisRepository.save(RefreshToken.builder()
+                    .id(null)
+                    .ip(NetUtils.getClientIp(request))
+                    .userDto(userDto)
+                    .refreshToken(jwtToken.getRefreshToken())
+                    .build());
+            //log.info("IP : {}", NetUtils.getClientIp(request)); // 클라이언트 IP 확인 로그
         }
 
         // [STEP4] 구성한 응답 값을 전달합니다.
