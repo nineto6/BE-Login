@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.NotBlank;
 import java.util.Optional;
 
 @RestController
@@ -34,7 +35,7 @@ public class UserController {
                 .userId(userDto.getUserId())
                 .userPw(userDto.getUserPw())
                 .userNm(userDto.getUserNm())
-                .userSt("X")
+                .userSt("X") // 유저 상태
                 .build();
 
         userService.signUp(user);
@@ -54,7 +55,7 @@ public class UserController {
      * @return ResponseEntity
      */
     @GetMapping("/duplicheck")
-    public ResponseEntity<ApiResponse> duplicateCheck(@RequestParam String userId) {
+    public ResponseEntity<ApiResponse> duplicateCheck(@RequestParam @NotBlank(message = "No spaces are allowed.") String userId) {
         UserDto checkUserId = UserDto.builder()
                 .userId(userId)
                 .build();

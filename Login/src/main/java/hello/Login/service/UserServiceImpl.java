@@ -6,6 +6,7 @@ import hello.Login.mapper.UserMapper;
 import hello.Login.model.UserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService{
 
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 로그인 구현체
@@ -31,11 +33,20 @@ public class UserServiceImpl implements UserService{
     @Override
     @Transactional
     public void signUp(UserDto userDto) {
-        Optional<UserDto> selectedUserDto = userMapper.login(userDto);
+        UserDto pwEncodedUserDto = UserDto.builder()
+                .userId(userDto.getUserId())
+                .userPw(passwordEncoder.encode(userDto.getUserPw()))
+                .userNm(userDto.getUserNm())
+                .userSt(userDto.getUserSt())
+                .build();
+
+        Optional<UserDto> selectedUserDto = userMapper.login(pwEncodedUserDto); // findByUserId
+
         if(selectedUserDto.isEmpty()) {
-            userMapper.save(userDto);
+            userMapper.save(pwEncodedUserDto);
             return;
         }
+
         throw new BusinessExceptionHandler(ErrorCode.INSERT_ERROR.getMessage(), ErrorCode.INSERT_ERROR);
     }
 }
