@@ -2,7 +2,10 @@
 
 ## 시작하기 전에...
 
-ErrorCode, Security, JWT 등을 참고한 사이트 출처 [Contributor9 블로그](https://adjh54.tistory.com)
+> ErrorCode, Security, JWT 등을 참고한 사이트 출처 
+- [Contributor9 블로그](https://adjh54.tistory.com/91)
+> Refresh-Token, Redis를 참고한 사이트 출처
+- [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/245)
 <br/>
 <p>
 <img src="https://img.shields.io/badge/Java-007396.svg?&style=for-the-badge&logo=Java&logoColor=white"/>
@@ -15,12 +18,18 @@ ErrorCode, Security, JWT 등을 참고한 사이트 출처 [Contributor9 블로�
 - Project : Gradle
 - SpringBoot 버전 : 2.7.11
 - Java 버전 : 11
-- Dependencies
+- 초기 Dependencies
    - Spring Web:1.6.12
    - Spring Security:5.7.8
    - Mybatis:3.5.11
    - Lombok:1.2.12
    - H2 Database:2.1.214
+- 추가된 Dependencies
+   - jwt:0.9.1
+   - jaxb-runtime(DataTypeConverter):2.3.2
+   - json-simple:1.1.1
+   - springdoc-openapi-ui(Swagger):1.6.12
+   - Redis:2.7.11
 <br/>
 <hr/>
 
@@ -230,9 +239,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 }
 ```
 
-> ## Dependencies 추가
-- implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
-
 > ## CustomAuthenticationFilter 작성
 - 아이디와 비밀번호 기반의 데이터를 Form 데이터로 전송을 받아 '인증'을 담당하는 필터
 ```Java
@@ -290,6 +296,10 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
 ```
 
 > ## CustomAuthSuccessHandler 작성
+- Dependencies 추가
+    ```Text
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1' // simple-json 추가
+    ```
 - 사용자의 '인증'에 대해 성공하였을 경우 수행되는 Handler로 성공에 대한 사용자에게 반환값을 구성하여 전달
 ```Java
 @Slf4j
@@ -608,10 +618,6 @@ public class WebSecurityConfig {
 <hr/>
 
 ##### 20230503
-> ## Dependencies 추가
-- implementation 'org.springdoc:springdoc-openapi-ui:1.6.12' // Swagger 추가
-- implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2' // DataTypeConverter 추가
-
 > ## ErrorCode
 - API 통신에 대한 '에러 코드'를 Enum 형태로 관리를 한다.
    - Global Error CodeList : 전역으로 발생하는 에러코드를 관리한다.
@@ -749,9 +755,6 @@ public class ApiResponse {
 <hr/>
 
 ##### 20230504
-> ## Dependencies 추가
-- implementation 'io.jsonwebtoken:jjwt:0.9.1' // jwt 
-
 > ## AuthConstants 추가
 - JWT 관련된 상수로 사용 되는 파일
 ```Java
@@ -762,6 +765,11 @@ public final class AuthConstants {
 ```
 
 > ## TokenUtils 추가
+- Dependencies 추가
+    ```Text
+    implementation 'io.jsonwebtoken:jjwt:0.9.1' // Json-Web-Token
+    implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.2' //DataTypeConverter 추가 
+    ```
 > - JWT 관련된 토큰 Util
 ```Java
 @Slf4j
@@ -922,7 +930,7 @@ public class TokenUtils {
 ```
 
 > ## JwtAuthorizationFilter 추가
-> - 지정한 URL 별 JWT 유효성 검증을 수행하며 직접적인 사용자 '인증'을 확인한다.
+- 지정한 URL 별 JWT 유효성 검증을 수행하며 직접적인 사용자 '인증'을 확인한다.
 ```Java
 @Slf4j
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
@@ -1031,7 +1039,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 }
 ```
 
-> ## WebSecurityConfig JWT 관련 코드 추가
+> ## WebSecurityConfig JWT 관련 코드 변경 및 추가
 ```Java
 @Bean
  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -1074,6 +1082,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 ```
 
 > ## TestController 작성
+- Dependencies 추가
+    - build.gradle
+    ```Text
+    - implementation 'org.springdoc:springdoc-openapi-ui:1.6.12' // Swagger 추가
+    ```
 ```Java
 @Slf4j
 @RestController
@@ -1469,8 +1482,7 @@ public class ObjectApiResponse {
 custom.jwt-secret-key=exampleSecretKey
 ```
 > ## 계획
-- 현재 토큰 만료 기간이 8시간으로 되어있는데 만일 토큰이 탈취가 됐을 경우
-심각한 문제가 발생하게 된다. 그러면 매우 짧은 만료 기간을 가지게 하면 사용자는 매번 토큰이 만료가될 시 로그인을 새로 하여, 새롭게 토큰을 받아야 한다.
+- 현재 토큰 만료 기간이 8시간으로 되어있는데 만일 토큰이 탈취가 됐을 경우 심각한 문제가 발생하게 된다. 그리고 매우 짧은 만료 기간을 가지게 되면 사용자는 매번 토큰이 만료가될 시 로그인을 계속 해야된다는 불편함을 갖고있다.
 - 보안과 사용자의 편리함을 둘다 가져가는 방법을 찾게 되었는데, 찾은것이 Refresh-Token 방식이다.
 - Access-Token은 짧게(30분) 만료 기간, Refresh-Token은 길게(3일) 만료기간을 갖는다.
 - 서버는 로그인 성공시 Access-Token 과 Refresh-Token을 발급한다.(header에 응답)
@@ -1480,7 +1492,8 @@ custom.jwt-secret-key=exampleSecretKey
 - 서버는 Access-Token을 받고 인증된 토큰인지 확인 후 처리를 하고 응답한다.
 - Access-Token이 만료되었을 경우에는 에러 메세지를 응답하게 된다.
 - 클라이언트는 토큰이 만료되었을 경우 .../api/reissue URL에 Refresh-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
-- 서버는 Refresh-Token을 받고 인증된 토큰인지 확인 후(만료가 되었는지도 확인) Access-Token 과 Refresh-Token을 함께 발급하여 응답한다.(이때 Redis에 새로 발급한 토큰을 Update)
+- 서버는 Refresh-Token을 받고 인증된 토큰인지 확인 후(만료가 되었는지도 확인) Refresh-Token을 Redis에 조회하여 Request 된 IP와  조회된 IP를 비교 후 같은 IP일 경우 Access-Token 과 Refresh-Token을 함께 발급하여 응답한다.(이때 Redis에 새로 발급한 토큰을 Update) 
+
 > ## Redis 추가
 - build.gradle
 ```Text
