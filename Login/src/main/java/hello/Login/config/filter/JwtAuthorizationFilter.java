@@ -31,7 +31,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
         List<String> list = Arrays.asList(
                 "/api/user/login",  // 로그인
-                "/api/test/generateToken",
+                "/api/reissue", // 리프레쉬 토큰으로 재발급
+                // "/api/test/generateToken", // 테스트 전용
                 "/api/user/signup", // 회원가입
                 "/api/user/duplicheck" // 회원가입 하위 사용 가능 ID 확인
         );
@@ -59,11 +60,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 // [STEP2] Header 내에 토큰을 추출합니다.
                 String token = TokenUtils.getTokenFormHeader(header);
 
-                // [STEP3] 추출한 토큰이 유효한지 여부를 체크합니다.
-                if(TokenUtils.isValidToken(token)) {
+                // [STEP3] 추출한 엑세스 토큰이 유효한지 여부를 체크합니다.
+                if(token != null && TokenUtils.isValidAccessToken(token)) {
 
                     // [STEP4] 토큰을 기반으로 사용자 아이디를 반환 받는 메서드
-                    String userId = TokenUtils.getUserIdFormToken(token);
+                    String userId = TokenUtils.getUserIdFormAccessToken(token);
                     log.debug("[+] userId Check: {}", userId);
 
                     // [STEP5] 사용자 아이디가 존재하는지 여부 체크
@@ -71,11 +72,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                         filterChain.doFilter(request, response);
                     } else {
                         // 사용자 아이디가 존재 하지 않을 경우
-                        throw new BusinessExceptionHandler("TOKEN isn't userId", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                        throw new BusinessExceptionHandler("Token isn't userId", ErrorCode.BUSINESS_EXCEPTION_ERROR);
                     }
                 } else {
                     // 토큰이 유효하지 않은 경우
-                    throw new BusinessExceptionHandler("TOKEN is invalid", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                    throw new BusinessExceptionHandler("Token is invalid", ErrorCode.BUSINESS_EXCEPTION_ERROR);
                 }
             }
             else {
@@ -104,19 +105,19 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
         // JWT 토큰 만료
         if(e instanceof ExpiredJwtException) {
-            resultMsg = "TOKEN Expired";
+            resultMsg = "Token Expired";
         }
         // JWT 허용된 토큰이 아님
         else if(e instanceof SignatureException) {
-            resultMsg = "TOKEN SignatureException Login";
+            resultMsg = "Token SignatureException Login";
         }
         // JWT 토큰내에서 오류 발생 시
         else if(e instanceof JwtException) {
-            resultMsg = "TOKEN Parsing JwtException";
+            resultMsg = "Token Parsing JwtException";
         }
         // 이외 JWT 토큰내에서 오류 발생
         else {
-            resultMsg = "OTHER TOKEN ERROR";
+            resultMsg = "Other Token Error";
         }
 
         HashMap<String, Object> jsonMap = new HashMap<>();

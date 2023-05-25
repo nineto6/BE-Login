@@ -28,7 +28,7 @@ public class BoardController {
 
     @PostMapping
     public ResponseEntity<ApiResponse> createBoard(@RequestBody BoardDto boardDto, HttpServletRequest request) {
-        String userNm = TokenUtils.getUserNmFormToken(
+        String userNm = TokenUtils.getUserNmFormAccessToken(
                 TokenUtils.getTokenFormHeader(
                         request.getHeader(AuthConstants.AUTH_HEADER
                         )));
