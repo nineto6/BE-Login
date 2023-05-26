@@ -92,7 +92,7 @@ public class TokenUtils {
             return true;
         } catch (ExpiredJwtException exception) {
             log.error("Token Expired");
-            return false;
+            throw exception;
         } catch (JwtException exception) {
             log.error("Token Tampered", exception);
             return false;
