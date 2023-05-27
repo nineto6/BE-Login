@@ -1490,7 +1490,7 @@ custom.jwt-secret-key=exampleSecretKey
 - 클라이언트는 localStorage를 이용하여 Access-Token 과 Refresh-Token을 저장한다.
 - 클라이언트는 인증이 필요한 URL 요청시(/api/board GET.. 등) Access-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
 - 서버는 Access-Token을 받고 인증된 토큰인지 확인 후 처리를 하고 응답한다.
-- Access-Token이 만료되었을 경우에는 에러 메세지를 응답하게 된다.
+- Access-Token이 만료되었을 경우에는 에러 메세지를 응답하게 된다.(401와 함께 Token Expired)
 - 클라이언트는 토큰이 만료되었을 경우 .../api/reissue URL에 Refresh-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
 - 서버는 Refresh-Token을 받고 인증된 토큰인지 확인 후(만료가 되었는지도 확인) Refresh-Token을 Redis에 조회하여 Request 된 IP와  조회된 IP를 비교 후 같은 IP일 경우 Access-Token 과 Refresh-Token을 함께 발급하여 응답한다.(이때 Redis에 새로 발급한 토큰을 Update) 
 
@@ -1525,3 +1525,21 @@ spring.redis.port=6379
 > ## TokenUtils 코드 변경
 > ## CustomAuthSuccessHandler 코드 변경
 > ## AccountController 코드 변경
+
+##### 20230525
+> ## JwtAuthorizationFilter 코드 변경
+> ## RefreshToken 코드 변경 
+> ## BoardController 코드 변경
+
+##### 20230526
+> ## 계획
+- 만일 DB가 탈취 됐을 경우 사용자 비밀번호를 그대로 보여주게되어 보안에 매우 취약하다.
+- 단방향 해시 알고리즘(bcrypt)을 이용하여 DB에 저장된 암호화된 비밀번호는 복호화가 불가능하게 만든다.
+- 클라이언트에서 로그인 요청시에만 비밀번호와 DB에 저장된 암호화된 값과의 비교를 통해 검증을 진행한다.
+
+> ## User 스키마 수정
+> ## CustomAuthenticationProvider 코드 변경
+> ## UserServiceImpl 코드 변경
+> ## UserController 코드 변경
+> ## TokenUtils 코드 변경
+> ## JwtAuthorizationFilter 코드 변경
