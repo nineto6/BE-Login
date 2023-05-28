@@ -1449,19 +1449,135 @@ public class ObjectApiResponse {
 
 ##### 20230515
 > ## UserService 코드 추가
+```Java
+    public interface UserService {
+    Optional<UserDto> login(UserDto userDto);
+    void signUp(UserDto userDto); // 추가
+}
+```
 
 > ## UserServiceImpl 코드 추가
+- 회원가입
+```Java
+@Override
+    @Transactional
+    public void signUp(UserDto userDto) {
+        Optional<UserDto> selectedUserDto = userMapper.login(userDto);
+        if(selectedUserDto.isEmpty()) {
+            userMapper.save(userDto);
+            return;
+        }
+        throw new BusinessExceptionHandler(ErrorCode.INSERT_ERROR,getMessage(), ErrorCode.INSERT_ERROR);
+    }
+```
 
 > ## UserController 작성
+```Java
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/user")
+@Slf4j
+public class UserController {
+    private final UserService userService;
+
+    /**
+     * UserId, UserPw, UserNm 을 받아서 회원가입
+     * @param userDto
+     * @return ResponseEntity
+     * 언체크 예외
+     * @throws BusinessExceptionHandler
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse> signUp(@RequestBody UserDto userDto) {
+
+        UserDto user = UserDto.builder()
+                .userId(userDto.getUserId())
+                .userPw(userDto.getUserPw())
+                .userNm(userDto.getUserNm())
+                .userSt("X")
+                .build();
+
+        userService.signUp(user);
+
+        ApiResponse success = ApiResponse.builder()
+                .result(SuccessCode.INSERT_SUCCESS.getCode())
+                .resultCode(SuccessCode.INSERT_SUCCESS.getStatus())
+                .resultMsg(SuccessCode.INSERT_SUCCESS.getMessage())
+                .build();
+
+        return new ResponseEntity<>(success, HttpStatus.OK);
+    }
+
+    /**
+     * userId 값을 받아와서 사용 가능한 Id 체크 (가능 true, 불가능 false)
+     * @param userId
+     * @return ResponseEntity
+     */
+    @GetMapping("/duplicheck")
+    public ResponseEntity<ApiResponse> duplicateCheck(@RequestParam String userId) {
+        UserDto checkUserId = UserDto.builder()
+                .userId(userId)
+                .build();
+
+        Optional<UserDto> findByIdDto = userService.login(checkUserId);
+
+        ApiResponse ar = ApiResponse.builder()
+                .result((findByIdDto.isEmpty()) ? "true" : "false")
+                .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
+                .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
+                .build();
+
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+}
+```
 
 > ## ErrorResponse 작성
+```Java
+@Getter
+public class ErrorResponse {
+    String result;
+    int resultCode;
+    String resultMsg;
+    String reason;
+
+    @Builder
+    public ErrorResponse(String result, int resultCode, String resultMsg, String reason) {
+        this.result = result;
+        this.resultCode = resultCode;
+        this.resultMsg = resultMsg;
+        this.reason = reason;
+    }
+}
+```
 
 > ## GlobalExceptionHandler 작성
+```Java
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    /**
+     * BusinessException 예외 처리
+     * @param ex
+     * @return ResponseEntity
+     */
+    @ExceptionHandler(BusinessExceptionHandler.class)
+    public ResponseEntity<ErrorResponse> businessExHandler(BusinessExceptionHandler ex) {
+        log.error("[exceptionHandler] ex", ex);
+
+        ErrorResponse er = ErrorResponse.builder()
+                .result(ErrorCode.BUSINESS_EXCEPTION_ERROR.getDivisionCode())
+                .resultCode(ErrorCode.BUSINESS_EXCEPTION_ERROR.getStatus())
+                .resultMsg(ErrorCode.BUSINESS_EXCEPTION_ERROR.getMessage())
+                .reason(ex.getMessage())
+                .build();
+
+        return new ResponseEntity<>(er, HttpStatus.OK);
+    }
+}
+```
 <br/>
 <hr/>
-
-##### 20230516
-> ## 테스트
 
 ##### 20230522
 > ## Secret-Key 별도로 분리 후 관리
@@ -1509,10 +1625,319 @@ spring.redis.port=6379
 
 ##### 20230523
 > ## RedisConfig 작성
+```Java
+@EnableRedisRepositories
+@Configuration
+public class RedisConfig {
+    @Value("${spring.redis.host}")
+    private String redisHost;
+
+    @Value("${spring.redis.port}")
+    private int redisPort;
+
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        return new LettuceConnectionFactory(redisHost, redisPort);
+    }
+
+    @Bean
+    public RedisTemplate<String, String> redisTemplate() {
+        RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setValueSerializer(new StringRedisSerializer());
+        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        return redisTemplate;
+    }
+}
+```
+
 > ## RedisRepository 작성
+- CrudRepository를 상속하는 CustomInterface를 생성
+- redisRepository 방식은 CrudRepository를 상속받은 인터페이스가 사용되기 때문에 Spring Data JPA에서 JpaRepository를 사용하는 방식과 유사하다는 특징이 있다.
+```Java
+public interface RedisRepository extends CrudRepository<RefreshToken, Long> {
+    RefreshToken findByRefreshToken(String refreshToken);
+}
+```
+
 > ## RefreshToken 작성
+```Java
+@Builder
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@RedisHash(value = "refresh", timeToLive = 1209600)
+public class RefreshToken {
+    @Id // null 로 저장될 경우 랜덤 값으로 설정된다. (UUID)
+    private String id;
+
+    private String ip;
+
+    private UserDto userDto;
+
+    @Indexed // Secondary indexes(보조 인덱스) 적용
+    private String refreshToken;
+}
+```
+
 > ## JwtToken 작성
+```Java
+@Builder
+@Getter
+@AllArgsConstructor
+public class JwtToken {
+    private String AccessToken;
+    private String RefreshToken;
+}
+```
+
 > ## TokenUtils 코드 변경
+- 다음에 개선 해야 하는 사항
+    - Access-Token 과 Refresh-Token이 subject 및 Claims 구성이 똑같기 때문에 보안적으로 안좋다. (header 및 payload가 똑같기 때문)
+```Java
+@Slf4j
+@Component
+public class TokenUtils {
+
+    private static String accessSecretKey;
+    private static String refreshSecretKey;
+
+    // application.properties 에서 accessSecretKey 값 가져오기
+    @Value(value = "${custom.jwt-access-secret-key}")
+    public void accessSecretKey(String key) {
+        accessSecretKey = key;
+    }
+
+    // application.properties 에서 refreshSecretKey 값 가져오기
+    @Value(value = "${custom.jwt-refresh-secret-key}")
+    public void setRefreshSecretKey(String key) {
+        refreshSecretKey = key;
+    }
+
+    /**
+     * 사용자 정보를 기반으로 토큰을 생성하여 반환 해주는 메서드
+     * @param userDto UserDto : 사용자 정보
+     * @return JwtToken(accessToken, refreshToken) 토큰
+     */
+    public static JwtToken generateJwtToken(UserDto userDto) {
+        // 사용자 시퀀스를 기준으로 JWT 토큰을 발급하여 반환해줍니다.
+        JwtBuilder accessBuilder = Jwts.builder()
+                .setHeader(createHeader())                                             // Header 구성
+                .setClaims(createAccessClaims(userDto))                                // Payload - Claims 구성
+                .setSubject(String.valueOf(userDto.getUserSq()))                       // Payload - Subject 구성
+                .signWith(SignatureAlgorithm.HS256, createSignature(accessSecretKey))  // Signature 구성
+                .setExpiration(createAccessTokenExpiredDate());                        // Expired Date 구성
+
+        JwtBuilder refreshBuilder = Jwts.builder()
+                .setHeader(createHeader())                                             // Header 구성
+                .setClaims(createRefreshClaims(userDto))                               // Payload - Claims 구성
+                .setSubject(String.valueOf(userDto.getUserSq()))                       // Payload - Subject 구성
+                .signWith(SignatureAlgorithm.HS256, createSignature(refreshSecretKey)) // Signature 구성
+                .setExpiration(createRefreshTokenExpiredDate());                       // Expired Date 구성
+
+        return JwtToken.builder()
+                .AccessToken(accessBuilder.compact())
+                .RefreshToken(refreshBuilder.compact())
+                .build();
+    }
+
+    /**
+     * 엑세스 토큰을 기반으로 사용자 정보를 반환 해주는 메서드
+     * @param token String : 토큰
+     * @return String : 사용자 정보
+     */
+    public static String parseAccessTokenToUserInfo(String token) {
+        return Jwts.parser()
+                .setSigningKey(accessSecretKey)
+                .parseClaimsJwt(token)
+                .getBody()
+                .getSubject();
+    }
+
+    /**
+     * 유효한 엑세스 토큰인지 확인 해주는 메서드
+     * @param token String  : 토큰
+     * @return      boolean : 유효한지 여부 반환
+     */
+    public static boolean isValidAccessToken(String token) {
+        try {
+            Claims claims = getAccessTokenToClaimsFormToken(token);
+
+            log.info("expireTime : {}", claims.getExpiration());
+            log.info("userId : {}", claims.get("uid"));
+            log.info("userNm : {}", claims.get("unm"));
+
+            return true;
+        } catch (ExpiredJwtException exception) {
+            log.error("Token Expired");
+            return false;
+        } catch (JwtException exception) {
+            log.error("Token Tampered", exception);
+            return false;
+        } catch(NullPointerException exception) {
+            log.error("Token is null");
+            return false;
+        }
+    }
+
+    /**
+     * 유효한 리프레쉬 토큰인지 확인 해주는 메서드
+     * @param token String  : 토큰
+     * @return      boolean : 유효한지 여부 반환
+     */
+    public static boolean isValidRefreshToken(String token) {
+        try {
+            Claims claims = getRefreshTokenToClaimsFormToken(token);
+
+            log.info("expireTime : {}", claims.getExpiration());
+            log.info("userId : {}", claims.get("uid"));
+            log.info("userNm : {}", claims.get("unm"));
+
+            return true;
+        } catch (ExpiredJwtException exception) {
+            log.error("Token Expired");
+            return false;
+        } catch (JwtException exception) {
+            log.error("Token Tampered", exception);
+            return false;
+        } catch(NullPointerException exception) {
+            log.error("Token is null");
+            return false;
+        }
+    }
+
+    /**
+     * Header 내에 토큰을 추출합니다.
+     *
+     * @param header 헤더
+     * @return String
+     */
+    public static String getTokenFormHeader(String header) {
+        return header.split(" ")[1];
+    }
+
+    /**
+     * 엑세스 토큰의 만료기간을 지정하는 함수
+     * @return Calendar
+     */
+    private static Date createAccessTokenExpiredDate() {
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.MINUTE, 30);   // 30분으로 설정
+        return c.getTime();
+    }
+
+    /**
+     * 리프레쉬 토큰의 만료기간을 지정하는 함수
+     * @return Calendar
+     */
+    private static Date createRefreshTokenExpiredDate() {
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.DATE, 3);   // 3일로 설정
+        return c.getTime();
+    }
+
+    /**
+     * JWT 의 "헤더" 값을 생성해주는 메서드
+     * @return HashMap<String, Object>
+     */
+    private static Map<String, Object> createHeader() {
+        Map<String, Object> header = new HashMap<>();
+
+        header.put("typ", "JWT");
+        header.put("alg", "HS256");
+        header.put("regDate", System.currentTimeMillis());
+        return header;
+    }
+
+    /**
+     * Access-Token 전용 사용자 정보를 기반으로 클래임을 생성해주는 메서드
+     * @param userDto 사용자 정보
+     * @return Map<String, Object>
+     */
+    private static Map<String, Object> createAccessClaims(UserDto userDto) {
+        // 공개 클레임에 사용자의 이름과 이메일을 설정하여 정보를 조회할 수 있다.
+        // JWT 를 최대한 짧게 만들기 위해 클레임네임을 전부 약자로 변경
+        // 클레임셋의 내용이 많아지면 토큰의 길이도 같이 길어지기 때문에 되도록 최소화한다.
+        Map<String, Object> claims = new HashMap<>();
+
+        log.info("userId : {}", userDto.getUserId());
+        log.info("userNm : {}", userDto.getUserNm());
+
+        claims.put("uid", userDto.getUserId());
+        claims.put("unm", userDto.getUserNm());
+        return claims;
+    }
+
+    /**
+     * Refresh-Token 전용 사용자 정보를 기반으로 클래임을 생성해주는 메서드
+     * @param userDto 사용자 정보
+     * @return Map<String, Object>
+     */
+    private static Map<String, Object> createRefreshClaims(UserDto userDto) {
+        // 공개 클레임에 사용자의 이름과 이메일을 설정하여 정보를 조회할 수 있다.
+        // JWT 를 최대한 짧게 만들기 위해 클레임네임을 전부 약자로 변경
+        // 클레임셋의 내용이 많아지면 토큰의 길이도 같이 길어지기 때문에 되도록 최소화한다.
+        Map<String, Object> claims = new HashMap<>();
+
+        log.info("userId : {}", userDto.getUserId());
+        log.info("userNm : {}", userDto.getUserNm());
+
+        claims.put("uid", userDto.getUserId());
+        claims.put("unm", userDto.getUserNm());
+        return claims;
+    }
+
+    /**
+     * JWT "서명(Signature)" 발급을 해주는 메서드
+     * @return Key
+     */
+    private static Key createSignature(String key) {
+        byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(key);
+        return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName());
+    }
+
+    /**
+     * 엑세스 토큰 정보를 기반으로 Claims 정보를 반환받는 메서드
+     * @param token : 토큰
+     * @return Claims : Claims
+     */
+    private static Claims getAccessTokenToClaimsFormToken(String token) {
+        return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(accessSecretKey))
+                .parseClaimsJws(token).getBody();
+    }
+
+    /**
+     * 리프레쉬 토큰 정보를 기반으로 Claims 정보를 반환받는 메서드
+     * @param token : 토큰
+     * @return Claims : Claims
+     */
+    private static Claims getRefreshTokenToClaimsFormToken(String token) {
+        return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(refreshSecretKey))
+                .parseClaimsJws(token).getBody();
+    }
+
+
+    /**
+     * 엑세스 토큰을 기반으로 사용자 아이디를 반환받는 메서드
+     * @param token : 토큰
+     * @return String : 사용자 아이디
+     */
+    public static String getUserIdFormAccessToken(String token) {
+        Claims claims = getAccessTokenToClaimsFormToken(token);
+        return claims.get("uid").toString();
+    }
+
+    /**
+     * 엑세스 토큰을 기반으로 사용자 닉네임을 반환받는 메서드
+     * @param token : 토큰
+     * @return String : 사용자 닉네임
+     */
+    public static String getUserNmFormAccessToken(String token) {
+        Claims claims = getAccessTokenToClaimsFormToken(token);
+        return claims.get("unm").toString();
+    }
+}
+```
 
 ##### 20230524
 > ## NetUtils 작성
@@ -1522,14 +1947,11 @@ spring.redis.port=6379
 > ## CustomAuthSuccessHandler 코드 변경
 > ## TestController 코드 변경 및 테스트
 > ## AccountController 작성 및 테스트
-> ## TokenUtils 코드 변경
 > ## CustomAuthSuccessHandler 코드 변경
 > ## AccountController 코드 변경
 
 ##### 20230525
-> ## JwtAuthorizationFilter 코드 변경
-> ## RefreshToken 코드 변경 
-> ## BoardController 코드 변경
+> ## RefreshToken 코드 변경
 
 ##### 20230526
 > ## 계획
