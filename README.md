@@ -1942,16 +1942,265 @@ public class TokenUtils {
 ##### 20230524
 > ## NetUtils 작성
 - HttpServletRequest 정보를 가져와서 header 내에 IP 정보를 String으로 반환하는 메서드 getClinetIp()
+```Java
+public class NetUtils {
+    public static String getClientIp(HttpServletRequest request) {
+        String clientIp = null;
+        boolean isIpInHeader = false;
+
+        List<String> headerList = new ArrayList<>();
+        headerList.add("X-Forwarded-For"); // (X-Forwarded-For (XFF) - HTTP 프록시나 로드 밸런서를 통해 웹 서버에 접속하는 클라이언트의 원 IP 주소를 식별하는 표준 헤더)
+        headerList.add("HTTP_CLIENT_IP");
+        headerList.add("HTTP_X_FORWARDED_FOR");
+        headerList.add("HTTP_X_FORWARDED");
+        headerList.add("HTTP_FORWARDED_FOR");
+        headerList.add("HTTP_FORWARDED");
+        headerList.add("Proxy-Client-IP");
+        headerList.add("WL-Proxy-Client-IP");
+        headerList.add("HTTP_VIA");
+        headerList.add("IPV6_ADR");
+
+        for (String header : headerList) {
+            clientIp = request.getHeader(header);
+            if (StringUtils.hasText(clientIp) && !clientIp.equals("unknown")) {
+                isIpInHeader = true;
+                break;
+            }
+        }
+
+        if (!isIpInHeader) {
+            clientIp = request.getRemoteAddr();
+        }
+
+        return clientIp;
+    }
+}
+```
+
 > ## AuthConstatns 코드 변경
-> ## WebSecurityConfig 코드 변경
+```Java
+public final class AuthConstants {
+    public static final String AUTH_HEADER = "Authorization";
+    public static final String AUTH_ACCESS = "Access-Token"; // 추가
+    public static final String AUTH_REFRESH = "Refresh-Token"; // 추가
+    public static final String TOKEN_TYPE = "BEARER";
+}
+```
+
+> ## WebSecurityConfig 코드 변경 (추가된 부분)
+```Java
+public class WebSecurityConfig {
+    private final RedisRepository redisRepository; // 추가
+
+    @Bean
+    public CustomAuthSuccessHandler customLoginSuccessHandler() {
+        return new CustomAuthSuccessHandler(redisRepository); // 추가(의존관계 주입)
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.addAllowedOrigin("https://localhost:3000/");
+        configuration.addAllowedHeader("*");
+        configuration.addAllowedMethod("*");
+        configuration.setAllowCredentials(true);
+        configuration.addExposedHeader(AuthConstants.AUTH_HEADER);
+        configuration.addExposedHeader(AuthConstants.AUTH_ACCESS); // 추가
+        configuration.addExposedHeader(AuthConstants.AUTH_REFRESH); // 추가
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+}
+```
+
 > ## CustomAuthSuccessHandler 코드 변경
+```Java
+@Slf4j
+@Configuration
+@RequiredArgsConstructor // 추가
+public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+
+    private final RedisRepository refreshTokenRedisRepository; // 추가
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
+        log.debug("3. CustomLoginSuccessHandler");
+
+        // [STEP1] 사용자와 관련된 정보를 모두 조회합니다.
+        UserDto userDto = ((UserDetailsDto) authentication.getPrincipal()).getUserDto();
+
+        // [STEP2] 조회한 데이터를 JSONObject 형태로 파싱을 수행합니다.
+        // 문제점 발생 지점
+        JSONObject userVoObj = (JSONObject)JSONValue.parse(new ObjectMapper().writeValueAsString(userDto));
+
+        HashMap<String, Object> responseMap = new HashMap<>();
+
+        JSONObject jsonObject;
+        // [STEP3-1] 사용자의 상태가 '휴먼 상태' 인 경우 응답 값으로 전달 할 데이터
+        if(userDto.getUserSt().equals("D")) {
+            responseMap.put("userInfo", userVoObj);
+            responseMap.put("resultCode", 9001);
+            responseMap.put("token", null);
+            responseMap.put("failMsg", "휴먼 계정입니다.");
+            jsonObject = new JSONObject(responseMap);
+        }
+
+        // [STEP3-2] 사용자의 상태가 '휴먼 상태'가 아닌 경우 응답 값으로 전달할 데이터
+        else {
+            // 1. 일반 계정일 경우 데이터 세팅
+            responseMap.put("userInfo", userVoObj);
+            responseMap.put("resultCode", 200);
+            responseMap.put("failMsg", null);
+            jsonObject = new JSONObject(responseMap);
+
+            // *** 변경 부분 ***
+            // TODO: 추후 JWT 발급에 사용할 예정
+            JwtToken jwtToken = TokenUtils.generateJwtToken(userDto);
+            response.addHeader(AuthConstants.AUTH_ACCESS, jwtToken.getAccessToken());
+            response.addHeader(AuthConstants.AUTH_REFRESH, jwtToken.getRefreshToken());
+
+            // Redis 정보 저장
+            refreshTokenRedisRepository.save(RefreshToken.builder()
+                    .id(null)
+                    .ip(NetUtils.getClientIp(request))
+                    .userId(userDto.getUserId())
+                    .refreshToken(jwtToken.getRefreshToken())
+                    .build());
+            //log.info("IP : {}", NetUtils.getClientIp(request)); // 클라이언트 IP 확인 로그
+            // *****************
+        }
+
+        // [STEP4] 구성한 응답 값을 전달합니다.
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        PrintWriter printWriter = response.getWriter();
+        printWriter.print(jsonObject); // 최정 저장된 '사용자 정보', '사이트 정보' Front 전달
+        printWriter.flush();
+        printWriter.close();
+    }
+}
+```
+
 > ## TestController 코드 변경 및 테스트
+```Java
+@Slf4j
+@RestController
+@RequestMapping("api/test")
+public class TestController {
+
+    @PostMapping("/generateToken")
+    @Operation(summary = "토큰 발급", description = "사용자 정보를 기반으로 JWT 를 발급하는 API")
+    public ResponseEntity<ApiResponse> selectCodeList(@RequestBody UserDto userDto) {
+        JwtToken jwtToken = TokenUtils.generateJwtToken(userDto); // 변경
+
+        ApiResponse ar = ApiResponse.builder()
+                // BEARER {토큰} 형태로 반환을 해줍니다.
+                .result("Access-Token"  + " " + jwtToken.getAccessToken()
+                        + "Refresh-Token" + " " + jwtToken.getRefreshToken()) // 변경
+                .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
+                .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
+                .build();
+
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+}
+```
+
 > ## AccountController 작성 및 테스트
-> ## CustomAuthSuccessHandler 코드 변경
-> ## AccountController 코드 변경
+- Refresh-Token 유효성 검사 및 IP 확인 후 Access-Token, Refresh-Token 재 발급 
+```Java
+@RestController
+@RequestMapping("/api/reissue")
+@RequiredArgsConstructor
+public class AccountController {
+
+    private final RedisRepository refreshTokenRedisRepository;
+    private final UserService userService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse> reissue(HttpServletRequest request, HttpServletResponse response) {
+        // 1. Request 에서 Header 추출
+        String header = request.getHeader(AuthConstants.AUTH_HEADER);
+
+        // 2. Header 에서 JWT Refresh Token 추출
+        String token = TokenUtils.getTokenFormHeader(header);
+
+        // 3. validateToken 메서드로 토큰 유효성 검사
+        if (token != null && TokenUtils.isValidRefreshToken(token)) {
+            // 4. 저장된 refresh token 찾기
+            RefreshToken refreshToken = refreshTokenRedisRepository.findByRefreshToken(token);
+
+            if (refreshToken != null) {
+                // 5. 최초 로그인한 ip와 같은지 확인 (처리 방식에 따라 재발급을 하지 않거나 메일 등의 알림을 주는 방법이 있음)
+                String currentIpAddress = NetUtils.getClientIp(request);
+
+                if (refreshToken.getIp().equals(currentIpAddress)) {
+
+                    // findById 실행 후 userDto 값 가져오기
+                    Optional<UserDto> userDto = userService.login(UserDto.builder()
+                            .userId(refreshToken.getUserId())
+                            .build());
+
+                    if(userDto.isPresent()) { // userDto 값이 있을 경우 (null 이 아닌 경우)
+                        // 6. Redis 에 저장된 RefreshToken 정보를 기반으로 JWT Token 생성
+                        JwtToken jwtToken = TokenUtils.generateJwtToken(userDto.get());
+                        response.addHeader(AuthConstants.AUTH_ACCESS, jwtToken.getAccessToken());
+                        response.addHeader(AuthConstants.AUTH_REFRESH, jwtToken.getRefreshToken());
+
+                        // 7. Redis RefreshToken update
+                        refreshTokenRedisRepository.save(RefreshToken.builder()
+                                .id(refreshToken.getId())
+                                .ip(currentIpAddress)
+                                .userId(refreshToken.getUserId())
+                                .refreshToken(jwtToken.getRefreshToken())
+                                .build());
+
+                        ApiResponse ar = ApiResponse.builder()
+                                .result("Reissue Success")
+                                .resultCode(SuccessCode.UPDATE_SUCCESS.getStatus())
+                                .resultMsg(SuccessCode.UPDATE_SUCCESS.getMessage())
+                                .build();
+
+                        return new ResponseEntity<>(ar, HttpStatus.OK);
+                    }
+                }
+            }
+        }
+
+        ApiResponse ar = ApiResponse.builder()
+                .result("It cannot be reissued.")
+                .resultCode(ErrorCode.BUSINESS_EXCEPTION_ERROR.getStatus())
+                .resultMsg(ErrorCode.BUSINESS_EXCEPTION_ERROR.getMessage())
+                .build();
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+}
+```
 
 ##### 20230525
 > ## RefreshToken 코드 변경
+- Redis에 저장할 기간을 3일로 지정
+```Java
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@RedisHash(value = "refresh", timeToLive = 259200) // 변경 (만료기간 3일로 지정)
+public class RefreshToken {
+    @Id // null 로 저장될 경우 랜덤 값으로 설정됨
+    private String id;
+
+    private String ip;
+
+    private UserDto userDto;
+    private String userId;
+
+    @Indexed // Secondary indexes(보조 인덱스) 적용
+    private String refreshToken;
+}
+```
 
 ##### 20230526
 > ## 계획
