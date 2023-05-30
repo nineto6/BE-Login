@@ -2209,8 +2209,200 @@ public class RefreshToken {
 - 클라이언트에서 로그인 요청시에만 비밀번호와 DB에 저장된 암호화된 값과의 비교를 통해 검증을 진행한다.
 
 > ## User 스키마 수정
+- user_pw 수정
+```SQL
+create table tb_user(
+   user_sq        int auto_increment primary key,
+   user_id         varchar(20) not null,
+   user_pw       varchar(20) not null,
+   user_pw       varchar(60) not null,  
+   user_nm       varchar(20) not null,
+   user_st         varchar(1) not null
+);
+```
+
 > ## CustomAuthenticationProvider 코드 변경
+```Java
+@Slf4j
+@RequiredArgsConstructor
+public class CustomAuthenticationProvider implements AuthenticationProvider {
+
+    @Resource
+    private UserDetailsService userDetailsService;
+
+    @NonNull
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        log.debug("2.CustomAuthenticationProvider");
+
+        UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
+
+        // 'AuthenticationFilter' 에서 생성된 토큰으로부터 아이디와 비밀번호를 조회함
+        String userId = token.getName();
+        String userPw = (String) token.getCredentials();
+
+        // Spring Security - UserDetailsService 를 통해 DB 에서 아이디로 사용자 조회
+        UserDetailsDto userDetailsDto = (UserDetailsDto) userDetailsService.loadUserByUsername(userId);
+
+        // passwordEncoder 를 이용하여 userPw 와 DB 에서 조회한 userDetailsDto.getUserPw(인코딩된) 비밀번호를 비교 (코드 변경)
+        if(!(passwordEncoder.matches(userPw, userDetailsDto.getUserPw()))) {
+            throw new BadCredentialsException(userDetailsDto.getUserNm() + " Invalid password");
+        }
+
+        return new UsernamePasswordAuthenticationToken(userDetailsDto, userPw, userDetailsDto.getAuthorities());
+    }
+
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return authentication.equals(UsernamePasswordAuthenticationToken.class);
+    }
+}
+```
+
 > ## UserServiceImpl 코드 변경
+```Java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService{
+
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+
+    /**
+     * 로그인 구현체
+     * @param userDto UserDto
+     * @return Optional<UserDto>
+     */
+    @Override
+    public Optional<UserDto> login(UserDto userDto) {
+        return userMapper.login(userDto);
+    }
+
+    @Override
+    @Transactional
+    public void signUp(UserDto userDto) {
+        // 코드 변경
+        UserDto pwEncodedUserDto = UserDto.builder()
+                .userId(userDto.getUserId())
+                .userPw(passwordEncoder.encode(userDto.getUserPw())) // 중요
+                .userNm(userDto.getUserNm())
+                .userSt(userDto.getUserSt())
+                .build();
+
+        Optional<UserDto> selectedUserDto = userMapper.login(pwEncodedUserDto); // findByUserId
+
+        if(selectedUserDto.isEmpty()) {
+            userMapper.save(pwEncodedUserDto);
+            return;
+        }
+
+        throw new BusinessExceptionHandler(ErrorCode.INSERT_ERROR.getMessage(), ErrorCode.INSERT_ERROR);
+    }
+}
+```
+
 > ## UserController 코드 변경
+- NotBlank 추가
+```Java
+public ResponseEntity<ApiResponse> duplicateCheck(@RequestParam @NotBlank(message = "No spaces are allowed.") String userId) {
+```
+
 > ## TokenUtils 코드 변경
+```Java
+@Slf4j
+@Component
+public class TokenUtils {
+
+    // ... 원래 있던 코드 생략
+
+    /**
+     * 유효한 엑세스 토큰인지 확인 해주는 메서드
+     * @param token String  : 토큰
+     * @return      boolean : 유효한지 여부 반환
+     */
+    public static boolean isValidAccessToken(String token) {
+        try {
+            Claims claims = getAccessTokenToClaimsFormToken(token);
+
+            log.info("expireTime : {}", claims.getExpiration());
+            log.info("userId : {}", claims.get("uid"));
+            log.info("userNm : {}", claims.get("unm"));
+
+            return true;
+        } catch (ExpiredJwtException exception) {
+            log.error("Token Expired");ㄴ
+            throw exception; // 변경
+        } catch (JwtException exception) {
+            log.error("Token Tampered", exception);
+            return false;
+        } catch(NullPointerException exception) {
+            log.error("Token is null");
+            return false;
+        }
+    }
+
+    // ... 원래 있던 코드 생략
+}
+```
+
 > ## JwtAuthorizationFilter 코드 변경
+```Java
+@Slf4j
+public class JwtAuthorizationFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
+        List<String> list = Arrays.asList(
+                "/api/user/login",  // 로그인
+                "/api/reissue", // 리프레쉬 토큰으로 재발급
+@ -103,31 +104,42 @@
+
+    private JSONObject jsonResponseWrapper(Exception e) {
+        String resultMsg = "";
+        
+        // *** 코드 추가 시작 ***
+        // 만료된 토큰만 resultMsg 에 적용 (프론트 검증시 필요(Refresh-Token 사용하기 위함))
+        // JWT 토큰 만료 (사용)
+        if(e instanceof ExpiredJwtException) {
+            resultMsg = "Token Expired";
+
+            // reason 을 내보내지 않기 위함 (exception 보안 문제)
+            HashMap<String, Object> jsonMap = new HashMap<>();
+            jsonMap.put("status", 401);
+            jsonMap.put("code", "9999");
+            jsonMap.put("message", resultMsg);
+            // reason X
+            JSONObject jsonObject = new JSONObject(jsonMap);
+            log.error(resultMsg, e);
+            return jsonObject;
+        }
+        // *** 코드 추가 끝 ***
+        
+        // JWT 허용된 토큰이 아님
+        else if(e instanceof SignatureException) {
+            resultMsg = "Token SignatureException Login";
+        }
+        // JWT 토큰내에서 오류 발생 시
+        else if(e instanceof JwtException) {
+            resultMsg = "Token Parsing JwtException";
+        }
+        // 이외 JWT 토큰내에서 오류 발생
+        else {
+            resultMsg = "Other Token Error";
+        }
+
+        HashMap<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("status", 401);
+        jsonMap.put("code", "9999");
+        jsonMap.put("message", resultMsg);
+        jsonMap.put("reason", e.getMessage());
+        JSONObject jsonObject = new JSONObject(jsonMap);
+        log.error(resultMsg, e);
+        return jsonObject;
+    }
+}
+```
