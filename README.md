@@ -2316,7 +2316,7 @@ public ResponseEntity<ApiResponse> duplicateCheck(@RequestParam @NotBlank(messag
 @Component
 public class TokenUtils {
 
-    // ... 원래 있던 코드 생략
+    // ... 코드 생략
 
     /**
      * 유효한 엑세스 토큰인지 확인 해주는 메서드
@@ -2344,7 +2344,7 @@ public class TokenUtils {
         }
     }
 
-    // ... 원래 있던 코드 생략
+    // ... 코드 생략
 }
 ```
 
@@ -2353,14 +2353,8 @@ public class TokenUtils {
 @Slf4j
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
-        List<String> list = Arrays.asList(
-                "/api/user/login",  // 로그인
-                "/api/reissue", // 리프레쉬 토큰으로 재발급
-@ -103,31 +104,42 @@
-
+    // ... 코드 생략
+    
     private JSONObject jsonResponseWrapper(Exception e) {
         String resultMsg = "";
         
