@@ -31,11 +31,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
         List<String> list = Arrays.asList(
-                "/api/user/login",  // 로그인
+                "/api/users/login",  // 로그인
                 "/api/reissue", // 리프레쉬 토큰으로 재발급
                 // "/api/test/generateToken", // 테스트 전용
-                "/api/user/signup", // 회원가입
-                "/api/user/duplicheck" // 회원가입 하위 사용 가능 ID 확인
+                "/api/users/signup", // 회원가입
+                "/api/users/duplicheck" // 회원가입 하위 사용 가능 ID 확인
         );
 
         // 2. 토큰이 필요하지 않은 API URL 의 경우 => 로직 처리 없이 다음 필터로 이동
