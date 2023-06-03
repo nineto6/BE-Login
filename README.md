@@ -527,7 +527,7 @@ public class WebSecurityConfig {
     @Bean
     public CustomAuthenticationFilter customAuthenticationFilter() {
         CustomAuthenticationFilter customAuthenticationFilter = new CustomAuthenticationFilter(authenticationManager());
-        customAuthenticationFilter.setFilterProcessesUrl("/api/user/login"); // 접근 URL
+        customAuthenticationFilter.setFilterProcessesUrl("/api/users/login"); // 접근 URL
         customAuthenticationFilter.setAuthenticationSuccessHandler(customLoginSuccessHandler()); // '인증' 성공 시 해당 핸들러로 처리를 전가한다.
         customAuthenticationFilter.setAuthenticationFailureHandler(customLoginFailureHandler()); // '인증' 실패 시 해당 핸들러로 처리를 전가한다.
         customAuthenticationFilter.afterPropertiesSet();
@@ -555,7 +555,7 @@ public class WebSecurityConfig {
 ```
 
 > ## 문제 발생
-- .../api/user/login URL에 Front에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 오류 확인
+- .../api/users/login URL에 Front에서 Back 서버로 요청 및 응답을 확인을 하였으나 HTTP 응답시 CORS 오류 확인
 <br/>
 <hr/>
 
@@ -611,7 +611,7 @@ public class WebSecurityConfig {
         return source;
     }
 ```
-- .../api/user/login URL에 Front에서 Back 서버로 요청 및 응답을 확인하여 200 정상 응답코드 확인
+- .../api/users/login URL에 Front에서 Back 서버로 요청 및 응답을 확인하여 200 정상 응답코드 확인
 - Back 서버에서의 로그 확인 이미지
 <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_01.png">
 <br/>
@@ -938,10 +938,10 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
         List<String> list = Arrays.asList(
-                "/api/user/login",  // 로그인
+                "/api/users/login",  // 로그인
                 "/api/test/generateToken",
-                "/api/user/signup", // 회원가입
-                "/api/user/duplicheck" // 회원가입 하위 사용 가능 ID 확인
+                "/api/users/signup", // 회원가입
+                "/api/users/duplicheck" // 회원가입 하위 사용 가능 ID 확인
         );
 
         // 2. 토큰이 필요하지 않은 API URL 의 경우 => 로직 처리 없이 다음 필터로 이동
@@ -1475,7 +1475,7 @@ public class ObjectApiResponse {
 ```Java
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/user")
+@RequestMapping("/api/users")
 @Slf4j
 public class UserController {
     private final UserService userService;
