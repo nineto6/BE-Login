@@ -23,6 +23,7 @@ public class RedisConfig {
         return new LettuceConnectionFactory(redisHost, redisPort);
     }
 
+    // 로그아웃시에 Access-Token, Refresh-Token 유호기간을 블랙리스트에 등록할 때 필요
     @Bean
     public RedisTemplate<String, String> redisTemplate() {
         RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();

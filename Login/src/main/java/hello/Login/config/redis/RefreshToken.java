@@ -20,6 +20,7 @@ public class RefreshToken {
 
     private String ip;
 
+    @Indexed // 보조 인덱스 적용 (로그아웃시 필요)
     private String userId;
 
     @Indexed // Secondary indexes(보조 인덱스) 적용
