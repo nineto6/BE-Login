@@ -100,7 +100,7 @@ public class UserController {
 
         // 3. validateToken 메서드로 토큰 유효성 검사
         if (token != null && TokenUtils.isValidRefreshToken(token)) {
-            // 4. 저장된 refresh token 찾기
+            // 4. 저장된 refresh token 찾기 (로그아웃 되어 있으면 재발급 안됨)
             RefreshToken refreshToken = refreshTokenRedisRepository.findByRefreshToken(token);
 
             if (refreshToken != null) {
@@ -142,6 +142,51 @@ public class UserController {
 
         ApiResponse ar = ApiResponse.builder()
                 .result("It cannot be reissued.") // 재발급 불가
+                .resultCode(ErrorCode.BUSINESS_EXCEPTION_ERROR.getStatus())
+                .resultMsg(ErrorCode.BUSINESS_EXCEPTION_ERROR.getMessage())
+                .build();
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+
+    /**
+     * Access-Token 으로부터 로그아웃 (블랙리스트 저장)
+     * @param request (Authorization : BEARER Access-Token)
+     * @return ResponseEntity
+     */
+    @GetMapping("/logout")
+    public ResponseEntity<ApiResponse> logout(HttpServletRequest request) {
+        // 1. Request 에서 Header 추출
+        String header = request.getHeader(AuthConstants.AUTH_HEADER);
+
+        // 2. Header 에서 JWT Access Token 추출
+        String token = TokenUtils.getTokenFormHeader(header);
+
+        // 3. validateToken 메서드로 토큰 유효성 검사 (JwtAuthorizationFilter 인증 하기 때문에 필요 없다.)
+
+        // Access Token 에서 user ID 값을 가져온다
+        String userId = TokenUtils.getUserIdFormAccessToken(token);
+
+        // Redis 에서 해당  user ID 로 저장된 Refresh Token 이 있는지 여부를 확인 후에 있을 경우 삭제를 한다.
+        // (재발급을 불가능하게 만든다)
+        RefreshToken refreshToken = refreshTokenRedisRepository.findByUserId(userId);
+        if (refreshToken != null) {
+            // refreshToken 이 있을 경우
+            refreshTokenRedisRepository.delete(refreshToken);
+
+            // 해당 Access Token 유효시간을 가지고 와서 블랙 리스트에 저장하기
+            Long expiration = TokenUtils.getExpirationFormAccessToken(token);
+            redisTemplate.opsForValue().set(token, "logout", expiration, TimeUnit.MILLISECONDS);
+
+            ApiResponse ar = ApiResponse.builder()
+                    .result("Logout Success") // 이미 요청된 로그아웃
+                    .resultCode(SuccessCode.UPDATE_SUCCESS.getStatus())
+                    .resultMsg(SuccessCode.UPDATE_SUCCESS.getMessage())
+                    .build();
+            return new ResponseEntity<>(ar, HttpStatus.OK);
+        }
+
+        ApiResponse ar = ApiResponse.builder()
+                .result("Logout already requested") // 이미 요청된 로그아웃
                 .resultCode(ErrorCode.BUSINESS_EXCEPTION_ERROR.getStatus())
                 .resultMsg(ErrorCode.BUSINESS_EXCEPTION_ERROR.getMessage())
                 .build();

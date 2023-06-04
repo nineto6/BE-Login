@@ -258,4 +258,15 @@ public class TokenUtils {
         Claims claims = getAccessTokenToClaimsFormToken(token);
         return claims.get("unm").toString();
     }
+
+    /**
+     * 엑세스 토큰을 기반으로 만료 기간을 반환받는 메서드 (만료 시간 - 현재 시간 = 남은 시간(ms))
+     * @param token
+     * @return Long : Expiration
+     */
+    public static Long getExpirationFormAccessToken(String token) {
+        Claims claims = getAccessTokenToClaimsFormToken(token);
+        Date expiration = claims.getExpiration();
+        return expiration.getTime() - System.currentTimeMillis();
+    }
 }
