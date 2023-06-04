@@ -6,6 +6,9 @@
 - [Contributor9 블로그](https://adjh54.tistory.com/91)
 > Refresh-Token, Redis를 참고한 사이트 출처
 - [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/245)
+> JWT Logout, Redis를 참고한 사이트 출처
+- [joonghyun 블로그](https://velog.io/@joonghyun/SpringBoot-Jwt%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EB%A1%9C%EA%B7%B8%EC%95%84%EC%9B%83)
+- [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/61)
 <br/>
 <p>
 <img src="https://img.shields.io/badge/Java-007396.svg?&style=for-the-badge&logo=Java&logoColor=white"/>
@@ -2109,18 +2112,23 @@ public class TestController {
 }
 ```
 
-> ## AccountController 작성 및 테스트
+> ## UserControler 코드 추가 및 테스트
 - Refresh-Token 유효성 검사 및 IP 확인 후 Access-Token, Refresh-Token 재 발급 
 ```Java
-@RestController
-@RequestMapping("/api/reissue")
-@RequiredArgsConstructor
-public class AccountController {
-
+public class UserController {
     private final RedisRepository refreshTokenRedisRepository;
     private final UserService userService;
 
-    @GetMapping
+    // ... 코드 생략
+
+    // -------------------  추가 부분  ------------------
+    /**
+     *  Refresh-Token 으로 부터 재발급 (JwtAuthorizationFilter 인증 X)
+     * @param request (Authorization : BEARER Refresh-Token)
+     * @param response
+     * @return ResponseEntity
+     */
+    @GetMapping("/reissue")
     public ResponseEntity<ApiResponse> reissue(HttpServletRequest request, HttpServletResponse response) {
         // 1. Request 에서 Header 추출
         String header = request.getHeader(AuthConstants.AUTH_HEADER);
@@ -2130,7 +2138,7 @@ public class AccountController {
 
         // 3. validateToken 메서드로 토큰 유효성 검사
         if (token != null && TokenUtils.isValidRefreshToken(token)) {
-            // 4. 저장된 refresh token 찾기
+            // 4. 저장된 refresh token 찾기 (로그아웃 되어 있으면 재발급 안됨)
             RefreshToken refreshToken = refreshTokenRedisRepository.findByRefreshToken(token);
 
             if (refreshToken != null) {
@@ -2159,7 +2167,7 @@ public class AccountController {
                                 .build());
 
                         ApiResponse ar = ApiResponse.builder()
-                                .result("Reissue Success")
+                                .result("Reissue Success") // 재발급 성공
                                 .resultCode(SuccessCode.UPDATE_SUCCESS.getStatus())
                                 .resultMsg(SuccessCode.UPDATE_SUCCESS.getMessage())
                                 .build();
@@ -2171,18 +2179,18 @@ public class AccountController {
         }
 
         ApiResponse ar = ApiResponse.builder()
-                .result("It cannot be reissued.")
+                .result("It cannot be reissued.") // 재발급 불가
                 .resultCode(ErrorCode.BUSINESS_EXCEPTION_ERROR.getStatus())
                 .resultMsg(ErrorCode.BUSINESS_EXCEPTION_ERROR.getMessage())
                 .build();
         return new ResponseEntity<>(ar, HttpStatus.OK);
     }
-}
 ```
 
 ##### 20230525
 > ## RefreshToken 코드 변경
 - Redis에 저장할 기간을 3일로 지정
+- timeToLive : 초 단위
 ```Java
 @Getter
 @AllArgsConstructor
@@ -2400,3 +2408,15 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     }
 }
 ```
+
+##### 20230603
+> ## 계획
+로그아웃 기능 구현
+1. logout 요청시 Redis를 이용해서 Access-Token을 블랙리스트에 등록하게 한다.
+    - Redis 만료 시간을 Access-Token의 남은 시간으로 지정한다.
+2. 토큰 재발급을 못하게 막는다.
+    - Redis에 등록한 Refresh-Token을 제거한다.
+    - 그러면 이후에 재발급 요청시 Redis에 저장된 Refresh-Token이 없으므로 재발급이 불가능하다.
+3. JwtAuthorizationFilter에서 로그아웃이 되어있는지 확인하는 검증을 작성한다.
+    - key-value 형식으로된 Redis에서 Access-Token의 value 값이 없는지 확인한다.
+    - 있으면 로그아웃이 된 Access-Token 이므로 예외를 반환한다.
