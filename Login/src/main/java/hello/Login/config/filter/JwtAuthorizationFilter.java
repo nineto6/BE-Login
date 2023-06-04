@@ -7,9 +7,12 @@ import hello.Login.config.exception.BusinessExceptionHandler;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.SignatureException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -26,13 +29,15 @@ import java.util.List;
  * 지정한 URL 별 JWT 유효성 검증을 수행하며 직접적인 사용자 '인증'을 확인합니다.
  */
 @Slf4j
+@RequiredArgsConstructor
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
+    private final RedisTemplate<String, String> redisTemplate;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
         List<String> list = Arrays.asList(
                 "/api/users/login",  // 로그인
-                "/api/reissue", // 리프레쉬 토큰으로 재발급
+                "/api/users/reissue", // 리프레쉬 토큰으로 재발급
                 // "/api/test/generateToken", // 테스트 전용
                 "/api/users/signup", // 회원가입
                 "/api/users/duplicheck" // 회원가입 하위 사용 가능 ID 확인
@@ -64,16 +69,25 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 // [STEP3] 추출한 엑세스 토큰이 유효한지 여부를 체크합니다.
                 if(token != null && TokenUtils.isValidAccessToken(token)) {
 
-                    // [STEP4] 토큰을 기반으로 사용자 아이디를 반환 받는 메서드
-                    String userId = TokenUtils.getUserIdFormAccessToken(token);
-                    log.debug("[+] userId Check: {}", userId);
+                    // [STEP 3-1] Redis 에 해당 Access-Token 로그아웃 확인
+                    String isLogout = redisTemplate.opsForValue().get(token);
 
-                    // [STEP5] 사용자 아이디가 존재하는지 여부 체크
-                    if(userId != null && !userId.equalsIgnoreCase("")) {
-                        filterChain.doFilter(request, response);
+                    // 로그아웃이 되어 있지 않은 경우 해당 토큰은 정상적으로 작동
+                    if(ObjectUtils.isEmpty(isLogout)){
+                        // [STEP4] 토큰을 기반으로 사용자 아이디를 반환 받는 메서드
+                        String userId = TokenUtils.getUserIdFormAccessToken(token);
+                        log.debug("[+] userId Check: {}", userId);
+
+                        // [STEP5] 사용자 아이디가 존재하는지 여부 체크
+                        if(userId != null && !userId.equalsIgnoreCase("")) {
+                            filterChain.doFilter(request, response);
+                        } else {
+                            // 사용자 아이디가 존재 하지 않을 경우
+                            throw new BusinessExceptionHandler("Token isn't userId", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                        }
                     } else {
-                        // 사용자 아이디가 존재 하지 않을 경우
-                        throw new BusinessExceptionHandler("Token isn't userId", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                        // 현재 토큰이 로그아웃 되어 있는 경우
+                        throw new BusinessExceptionHandler("Token is logged out", ErrorCode.BUSINESS_EXCEPTION_ERROR);
                     }
                 } else {
                     // 토큰이 유효하지 않은 경우
