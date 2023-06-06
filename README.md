@@ -2412,7 +2412,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 ##### 20230603
 > ## 계획
 로그아웃 기능 구현
-1. logout 요청시 Redis를 이용해서 Access-Token을 블랙리스트에 등록하게 한다.
+1. logout 요청시 Redis를 이용하여 Access-Token을 블랙리스트에 등록하게 한다.
     - Redis 만료 시간을 Access-Token의 남은 시간으로 지정한다.
 2. 토큰 재발급을 못하게 막는다.
     - Redis에 등록한 Refresh-Token을 제거한다.
@@ -2420,3 +2420,5 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 3. JwtAuthorizationFilter에서 로그아웃이 되어있는지 확인하는 검증을 작성한다.
     - key-value 형식으로된 Redis에서 Access-Token의 value 값이 없는지 확인한다.
     - 있으면 로그아웃이 된 Access-Token 이므로 예외를 반환한다.
+4. Access-Token이 유효해야 한다.
+    - 로그아웃 요청시 Access-Token을 검증해야 한다. (Filter 적용)
