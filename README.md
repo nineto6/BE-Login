@@ -1,23 +1,43 @@
 # 🛠️NINETO6 사이드프로젝트 만들기
 
 ## 시작하기 전에...
+JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한다. 
 
-> ErrorCode, Security, JWT 등을 참고한 사이트 출처 
-- [Contributor9 블로그](https://adjh54.tistory.com/91)
-> Refresh-Token, Redis를 참고한 사이트 출처
-- [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/245)
-> JWT Logout, Redis를 참고한 사이트 출처
-- [joonghyun 블로그](https://velog.io/@joonghyun/SpringBoot-Jwt%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EB%A1%9C%EA%B7%B8%EC%95%84%EC%9B%83)
-- [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/61)
-<br/>
-<p>
-<img src="https://img.shields.io/badge/Java-007396.svg?&style=for-the-badge&logo=Java&logoColor=white"/>
-<img src="https://img.shields.io/badge/Spring%20Boot-6DB33F.svg?&style=for-the-badge&logo=SpringBoot&logoColor=white"/>
-<img src="https://img.shields.io/badge/Spring-6DB33F.svg?&style=for-the-badge&logo=Spring&logoColor=white"/>
-<img src="https://img.shields.io/badge/MyBatis-000000.svg?&style=for-the-badge&logoColor=white">
-<p/>
+## 요구사항
+어떤 사용자는 어떤 페이지에 접근하기 위해서 로그인이 반드시 필요하다.
+이를 위해 이전에 회원가입을 진행하고 로그인을 한 뒤에 해당 페이지에 접근한다.
+로그인이 되어 있지 않을 시, 해당 페이지로의 접근은 불가하다.
 
-- 현재 `Front-End` 와 `Back-end` 는 다른 환경에서 개발하고 있음
+### 인증 없이 접근 가능한 URL
+|기능|URL|
+|------|---|
+|회원가입|[POST]/api/users/signup|
+|로그인|[GET]/api/users/login|
+|사용자 아이디 중복 체크|[GET]/api/users/duplicheck?userId=사용자아이디|
+
+### 인증이 있어야 접근 가능한 URL
+|기능|URL|
+|------|---|
+|로그아웃|[GET]/api/users/logout|
+|게시글 생성|[POST] /api/board|
+|게시글 전체 조회|[GET] /api/board|
+
+### Refresh-Token을 가지고 Access-Token 재발급하는 URL
+|기능|URL|
+|------|---|
+|재발급|[GET]/api/users/reissue|
+
+## 출처
+- ErrorCode, Security, JWT 등을 참고한 사이트 출처 
+    - [Contributor9 블로그](https://adjh54.tistory.com/91)
+- Refresh-Token, Redis를 참고한 사이트 출처
+    - [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/245)
+- JWT Logout, Redis를 참고한 사이트 출처
+    - [joonghyun 블로그](https://velog.io/@joonghyun/SpringBoot-Jwt%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EB%A1%9C%EA%B7%B8%EC%95%84%EC%9B%83)
+    - [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/61)
+> 현재 `Front-End` 와 `Back-End` 는 다른 환경에서 개발하고 있음
+
+## 개발 환경
 - Project : Gradle
 - SpringBoot 버전 : 2.7.11
 - Java 버전 : 11
@@ -2138,7 +2158,7 @@ public class UserController {
 
         // 3. validateToken 메서드로 토큰 유효성 검사
         if (token != null && TokenUtils.isValidRefreshToken(token)) {
-            // 4. 저장된 refresh token 찾기 (로그아웃 되어 있으면 재발급 안됨)
+            // 4. 저장된 refresh token 찾기
             RefreshToken refreshToken = refreshTokenRedisRepository.findByRefreshToken(token);
 
             if (refreshToken != null) {
