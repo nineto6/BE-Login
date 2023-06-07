@@ -3,6 +3,8 @@
 ## 시작하기 전에...
 JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한다. 
 
+> 현재 `Front-End` 와 `Back-End` 는 다른 환경에서 개발하고 있음
+
 ## 요구사항
 어떤 사용자는 어떤 페이지에 접근하기 위해서 로그인이 반드시 필요하다.
 이를 위해 이전에 회원가입을 진행하고 로그인을 한 뒤에 해당 페이지에 접근한다.
@@ -22,7 +24,7 @@ JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한�
 |게시글 생성|[POST] /api/board|
 |게시글 전체 조회|[GET] /api/board|
 
-### Refresh-Token을 가지고 Access-Token 재발급하는 URL
+### Refresh-Token을 가지고 Access-Token을 재발급하는 URL
 |기능|URL|
 |------|---|
 |재발급|[GET]/api/users/reissue|
@@ -35,7 +37,6 @@ JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한�
 - JWT Logout, Redis를 참고한 사이트 출처
     - [joonghyun 블로그](https://velog.io/@joonghyun/SpringBoot-Jwt%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EB%A1%9C%EA%B7%B8%EC%95%84%EC%9B%83)
     - [wildeveloperetrain 블로그](https://wildeveloperetrain.tistory.com/61)
-> 현재 `Front-End` 와 `Back-End` 는 다른 환경에서 개발하고 있음
 
 ## 개발 환경
 - Project : Gradle
