@@ -13,21 +13,21 @@ JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한�
 ### 인증 없이 접근 가능한 URL
 |기능|URL|
 |------|---|
-|회원가입|[POST]/api/users/signup|
-|로그인|[GET]/api/users/login|
-|사용자 아이디 중복 체크|[GET]/api/users/duplicheck?userId=사용자아이디|
+|회원가입|[POST] /api/users/signup|
+|로그인|[GET] /api/users/login|
+|사용자 아이디 중복 체크|[GET] /api/users/duplicheck?userId=사용자아이디|
 
 ### 인증이 있어야 접근 가능한 URL
 |기능|URL|
 |------|---|
-|로그아웃|[GET]/api/users/logout|
+|로그아웃|[GET] /api/users/logout|
 |게시글 생성|[POST] /api/board|
 |게시글 전체 조회|[GET] /api/board|
 
 ### Refresh-Token을 가지고 Access-Token을 재발급하는 URL
 |기능|URL|
 |------|---|
-|재발급|[GET]/api/users/reissue|
+|재발급|[GET] /api/users/reissue|
 
 ## 출처
 - ErrorCode, Security, JWT 등을 참고한 사이트 출처 
@@ -2443,3 +2443,10 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     - 있으면 로그아웃이 된 Access-Token 이므로 예외를 반환한다.
 4. Access-Token이 유효해야 한다.
     - 로그아웃 요청시 Access-Token을 검증해야 한다. (Filter 적용)
+
+> ## RedisRepository 코드 추가
+> ## RefreshToken 코드 추가
+> ## WebSecurityConfig 코드 변경
+> ## JwtAuthorizationFilter 코드 변경
+> ## TokenUtils 코드 추가
+> ## UserController 코드 추가
