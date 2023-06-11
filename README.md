@@ -2445,8 +2445,225 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     - 로그아웃 요청시 Access-Token을 검증해야 한다. (Filter 적용)
 
 > ## RedisRepository 코드 추가
+```Java
+public interface RedisRepository extends CrudRepository<RefreshToken, Long> {
+    RefreshToken findByRefreshToken(String refreshToken);
+    RefreshToken findByUserId(String userId); // 추가
+}
+```
+
 > ## RefreshToken 코드 추가
+```Java
+@Builder
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@RedisHash(value = "refresh", timeToLive = 259200) // 만료기간 3일로 지정
+public class RefreshToken {
+    @Id // null 로 저장될 경우 랜덤 값으로 설정됨
+    private String id;
+
+    private String ip;
+
+    @Indexed // 보조 인덱스 적용 (로그아웃시 필요) // 추가 부분
+    private String userId;
+
+    @Indexed // Secondary indexes(보조 인덱스) 적용
+    private String refreshToken;
+}
+```
+
 > ## WebSecurityConfig 코드 변경
+```Java
+public class WebSecurityConfig {
+
+    private final RedisRepository redisRepository;
+    private final RedisTemplate<String, String> redisTemplate; // 추가
+
+    // ... 기존 코드 생략
+    /**
+     * 1. 정적 자원(Resource)에 대해서 인증된 사용자가 정적 자원의 접근에 대해 ‘인가’에 대한 설정을 담당하는 메서드이다.
+@ -172,7 +174,7 @@ public class WebSecurityConfig {
+     */
+    @Bean
+    public JwtAuthorizationFilter jwtAuthorizationFilter() {
+        return new JwtAuthorizationFilter(redisTemplate); // 변경
+    }
+
+    // ... 기존 코드 생략
+}
+```
+
 > ## JwtAuthorizationFilter 코드 변경
+```Java
+@Slf4j
+@RequiredArgsConstructor
+public class JwtAuthorizationFilter extends OncePerRequestFilter {
+
+    private final RedisTemplate<String, String> redisTemplate; // 추가
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 1. 토큰이 필요하지 않은 API URL 에 대해서 배열로 구성합니다.
+        List<String> list = Arrays.asList(
+                "/api/users/login",  // 로그인
+                "/api/users/reissue", // 리프레쉬 토큰으로 재발급
+                // "/api/test/generateToken", // 테스트 전용
+                "/api/users/signup", // 회원가입
+                "/api/users/duplicheck" // 회원가입 하위 사용 가능 ID 확인
+        );
+
+        // 2. 토큰이 필요하지 않은 API URL 의 경우 => 로직 처리 없이 다음 필터로 이동
+        if(list.contains(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 3. OPTIONS 요청일 경우 => 로직 처리 없이 다음 필터로 이동
+        if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // [STEP1] Client 에서 API 를 요청할 때 Header 를 확인합니다.
+        String header = request.getHeader(AuthConstants.AUTH_HEADER);
+        log.debug("[+] header Check: {}", header);
+
+        try {
+            // [STEP2-1] Header 내에 토큰이 존재하는 경우
+            if(header != null && !header.equalsIgnoreCase("")) {
+
+                // [STEP2] Header 내에 토큰을 추출합니다.
+                String token = TokenUtils.getTokenFormHeader(header);
+
+                // [STEP3] 추출한 엑세스 토큰이 유효한지 여부를 체크합니다.
+                if(token != null && TokenUtils.isValidAccessToken(token)) {
+                    
+                    // ------------ 변경 부분 ------------
+                    
+                    // [STEP 3-1] Redis 에 해당 Access-Token 로그아웃 확인
+                    String isLogout = redisTemplate.opsForValue().get(token);
+
+                    // 로그아웃이 되어 있지 않은 경우 해당 토큰은 정상적으로 작동
+                    if(ObjectUtils.isEmpty(isLogout)){
+                        // [STEP4] 토큰을 기반으로 사용자 아이디를 반환 받는 메서드
+                        String userId = TokenUtils.getUserIdFormAccessToken(token);
+                        log.debug("[+] userId Check: {}", userId);
+
+                        // [STEP5] 사용자 아이디가 존재하는지 여부 체크
+                        if(userId != null && !userId.equalsIgnoreCase("")) {
+                            filterChain.doFilter(request, response);
+                        } else {
+                            // 사용자 아이디가 존재 하지 않을 경우
+                            throw new BusinessExceptionHandler("Token isn't userId", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                        }
+                    } else {
+                        // 현재 토큰이 로그아웃 되어 있는 경우
+                        throw new BusinessExceptionHandler("Token is logged out", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                    }
+                    
+                    // ------------ 변경 부분 ------------
+
+                } else {
+                    // 토큰이 유효하지 않은 경우
+                    throw new BusinessExceptionHandler("Token is invalid", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+                }
+            }
+            else {
+                // [STEP2-1] 토큰이 존재하지 않는 경우
+                throw new BusinessExceptionHandler("Token is null", ErrorCode.BUSINESS_EXCEPTION_ERROR);
+            }
+        } catch (Exception e) {
+            // Token 내에 Exception 이 발생 하였을 경우 => 클라이언트에 응답값을 반환하고 종료합니다.
+            response.setCharacterEncoding("UTF-8");
+            response.setContentType("application/json");
+            PrintWriter printWriter = response.getWriter();
+            JSONObject jsonObject = jsonResponseWrapper(e);
+            printWriter.print(jsonObject);
+            printWriter.flush();
+            printWriter.close();
+        }
+    }
+
+    // ... 기존 코드 생략
+```
+
 > ## TokenUtils 코드 추가
+```Java
+@Slf4j
+@Component
+public class TokenUtils {
+
+    // ... 기존 코드 생략
+
+    /**
+     * 엑세스 토큰을 기반으로 만료 기간을 반환받는 메서드 (만료 시간 - 현재 시간 = 남은 시간(ms))
+     * @param token
+     * @return Long : Expiration
+     */
+    public static Long getExpirationFormAccessToken(String token) {
+        Claims claims = getAccessTokenToClaimsFormToken(token);
+        Date expiration = claims.getExpiration();
+        return expiration.getTime() - System.currentTimeMillis();
+    }
+}
+```
 > ## UserController 코드 추가
+```Java
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/users")
+@Slf4j
+public class UserController {
+    
+    // ... 기존 코드 생략
+
+    /**
+     * Access-Token 으로부터 로그아웃 (블랙리스트 저장)
+     * @param request (Authorization : BEARER Access-Token)
+     * @return ResponseEntity
+     */
+    @GetMapping("/logout")
+    public ResponseEntity<ApiResponse> logout(HttpServletRequest request) {
+        // 1. Request 에서 Header 추출
+        String header = request.getHeader(AuthConstants.AUTH_HEADER);
+
+        // 2. Header 에서 JWT Access Token 추출
+        String token = TokenUtils.getTokenFormHeader(header);
+
+        // 3. validateToken 메서드로 토큰 유효성 검사 (JwtAuthorizationFilter 인증 하기 때문에 필요 없다.)
+
+        // Access Token 에서 user ID 값을 가져온다
+        String userId = TokenUtils.getUserIdFormAccessToken(token);
+
+        // Redis 에서 해당  user ID 로 저장된 Refresh Token 이 있는지 여부를 확인 후에 있을 경우 삭제를 한다.
+        // (재발급을 불가능하게 만든다)
+        RefreshToken refreshToken = refreshTokenRedisRepository.findByUserId(userId);
+        if (refreshToken != null) {
+            // refreshToken 이 있을 경우
+            refreshTokenRedisRepository.delete(refreshToken);
+
+            // 해당 Access Token 유효시간을 가지고 와서 블랙 리스트에 저장하기 
+            // (Redis 유효기간을 Access-Token 만료 기간으로 설정)
+            Long expiration = TokenUtils.getExpirationFormAccessToken(token);
+            redisTemplate.opsForValue().set(token, "logout", expiration, TimeUnit.MILLISECONDS);
+
+            
+            // 성공
+            ApiResponse ar = ApiResponse.builder()
+                    .result("Logout Success") // 로그아웃 성공
+                    .resultCode(SuccessCode.UPDATE_SUCCESS.getStatus())
+                    .resultMsg(SuccessCode.UPDATE_SUCCESS.getMessage())
+                    .build();
+            return new ResponseEntity<>(ar, HttpStatus.OK);
+        }
+
+        ApiResponse ar = ApiResponse.builder()
+                .result("Logout already requested") // 이미 요청된 로그아웃
+                .resultCode(ErrorCode.BUSINESS_EXCEPTION_ERROR.getStatus())
+                .resultMsg(ErrorCode.BUSINESS_EXCEPTION_ERROR.getMessage())
+                .build();
+        return new ResponseEntity<>(ar, HttpStatus.OK);
+    }
+}
+```
