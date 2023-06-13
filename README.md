@@ -2440,9 +2440,9 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     - 그러면 이후에 재발급 요청시 Redis에 저장된 Refresh-Token이 없으므로 재발급이 불가능하다.
 3. JwtAuthorizationFilter에서 로그아웃이 되어있는지 확인하는 검증을 작성한다.
     - key-value 형식으로된 Redis에서 Access-Token의 value 값이 없는지 확인한다.
-    - 있으면 로그아웃이 된 Access-Token 이므로 예외를 반환한다.
+    - 있으면 로그아웃이 된 Access-Token 이므로 에러 응답을 반환한다.
 4. Access-Token이 유효해야 한다.
-    - 로그아웃 요청시 Access-Token을 검증해야 한다. (Filter 적용)
+    - 로그아웃 요청시 Access-Token을 검증해야 한다. (JwtAuthorizationFilter 적용)
 
 > ## RedisRepository 코드 추가
 ```Java
