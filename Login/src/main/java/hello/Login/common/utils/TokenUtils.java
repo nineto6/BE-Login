@@ -46,14 +46,14 @@ public class TokenUtils {
         JwtBuilder accessBuilder = Jwts.builder()
                 .setHeader(createHeader())                                             // Header 구성
                 .setClaims(createAccessClaims(userDto))                                // Payload - Claims 구성
-                .setSubject(String.valueOf(userDto.getUserSq()))                       // Payload - Subject 구성
+                .setSubject("AccessToken")                                             // Payload - Subject 구성
                 .signWith(SignatureAlgorithm.HS256, createSignature(accessSecretKey))  // Signature 구성
                 .setExpiration(createAccessTokenExpiredDate());                        // Expired Date 구성
 
         JwtBuilder refreshBuilder = Jwts.builder()
                 .setHeader(createHeader())                                             // Header 구성
                 .setClaims(createRefreshClaims(userDto))                               // Payload - Claims 구성
-                .setSubject(String.valueOf(userDto.getUserSq()))                       // Payload - Subject 구성
+                .setSubject("RefreshToken")                                            // Payload - Subject 구성
                 .signWith(SignatureAlgorithm.HS256, createSignature(refreshSecretKey)) // Signature 구성
                 .setExpiration(createRefreshTokenExpiredDate());                       // Expired Date 구성
 
@@ -167,7 +167,6 @@ public class TokenUtils {
 
         header.put("typ", "JWT");
         header.put("alg", "HS256");
-        header.put("regDate", System.currentTimeMillis());
         return header;
     }
 
