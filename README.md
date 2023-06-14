@@ -43,10 +43,10 @@ JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한�
 - SpringBoot 버전 : 2.7.11
 - Java 버전 : 11
 - 초기 Dependencies
-   - Spring Web:1.6.12
+   - Spring Web:5.3.27
    - Spring Security:5.7.8
    - Mybatis:3.5.11
-   - Lombok:1.2.12
+   - Lombok:1.18.26
    - H2 Database:2.1.214
 - 추가된 Dependencies
    - jwt:0.9.1
