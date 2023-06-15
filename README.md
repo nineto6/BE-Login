@@ -2236,6 +2236,8 @@ public class RefreshToken {
     private String refreshToken;
 }
 ```
+<br/>
+<hr/>
 
 ##### 20230526
 > ## 계획
