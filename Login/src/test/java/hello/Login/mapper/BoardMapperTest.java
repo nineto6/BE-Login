@@ -45,7 +45,6 @@ class BoardMapperTest {
     @Test
     @DisplayName("게시글 모두 조회 테스트")
     void findAll() {
-        UserDto user = UserDto.builder().build();
         // given
         BoardDto boardDto1 = BoardDto.builder()
                 .userNm("홍길동")

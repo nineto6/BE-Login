@@ -3,6 +3,7 @@ package hello.Login.mapper;
 import hello.Login.model.UserDto;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -20,6 +22,7 @@ class UserMapperTest {
     @Autowired UserMapper userMapper;
 
     @Test
+    @DisplayName("유저 저장 테스트")
     void save() {
         //given
         UserDto user = UserDto.builder()
@@ -37,6 +40,6 @@ class UserMapperTest {
         Optional<UserDto> login = userMapper.login(user);
 
         log.info("login is empty = {}", login.isEmpty());
-        Assertions.assertThat(login.isEmpty()).isFalse();
+        assertThat(login.isEmpty()).isFalse();
     }
 }
