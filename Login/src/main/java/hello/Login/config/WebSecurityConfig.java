@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -44,10 +45,24 @@ public class WebSecurityConfig {
      * 1. 정적 자원(Resource)에 대해서 인증된 사용자가 정적 자원의 접근에 대해 ‘인가’에 대한 설정을 담당하는 메서드이다.
      * @return WebSecurityCustomizer
      */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
+    // @Bean
+    // public WebSecurityCustomizer webSecurityCustomizer() {
         // 정적 자원에 대해서 Security 를 적용하지 않음으로 설정
-        return web -> web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+     //    return web -> web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+    // }
+
+    /**
+     * 1. WebSecurity.ignoring() 을 사용할 경우 Spring Security 의 어떠한 보호도 받을 수 없기 때문에 permitAll 를 사용하라고
+     * 권장하고 있다. 또한 ignoring() 을 사용할 때만 얻을 수 있는 성능상의 이점도 없다고 하여 성능을 고려한 설정 방법을 참고
+     * @param http
+     * @return
+     * @throws Exception
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain exceptionSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.requestMatchers((matchers) -> matchers.antMatchers(PathRequest.toStaticResources().atCommonLocations().toString()));
+        return http.build();
     }
 
     /**
@@ -57,6 +72,7 @@ public class WebSecurityConfig {
      * @throws Exception exception
      */
     @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.debug("[+] WebSecurityConfig Start !");
 
