@@ -1220,6 +1220,7 @@ class UserMapperTest {
     @Autowired UserMapper userMapper;
 
     @Test
+    @DisplayName("유저 저장 테스트")
     void save() {
         //given
         UserDto user = UserDto.builder()
@@ -1237,7 +1238,7 @@ class UserMapperTest {
         Optional<UserDto> login = userMapper.login(user);
 
         log.info("login is empty = {}", login.isEmpty());
-        Assertions.assertThat(login.isEmpty()).isFalse();
+        assertThat(login.isEmpty()).isFalse();
     }
 }
 ```
@@ -1343,7 +1344,6 @@ class BoardMapperTest {
     @Test
     @DisplayName("게시글 모두 조회 테스트")
     void findAll() {
-        UserDto user = UserDto.builder().build();
         // given
         BoardDto boardDto1 = BoardDto.builder()
                 .userNm("홍길동")
