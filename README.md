@@ -1164,7 +1164,7 @@ server.http2.enabled=true
 ```
 
 > ## 문제 해결
-- 응답시 Front에서 브라우저로 헤더값 확인 이미지
+- 로그인 성공 응답시 브라우저로 헤더값 확인 이미지
 <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
 <br/>
 <hr/>
@@ -1609,8 +1609,6 @@ public class GlobalExceptionHandler {
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_06.png">
 - 로그인 로그 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_05.png">
-- 로그인 후 Header에 토큰 발급 이미지
-<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
 - JwtAuthorizationFilter에서 인증이 되어야지 BoardController에 접근할 수 있다.
 - POST 게시글 등록 로그 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_03.png">
@@ -1736,7 +1734,7 @@ public class JwtToken {
 
 > ## TokenUtils 코드 변경
 - 다음에 개선 해야 하는 사항
-    - Access-Token 과 Refresh-Token이 subject 및 Claims 구성이 똑같기 때문에 보안적으로 안좋다. (header 및 payload가 똑같기 때문)
+    - Access-Token 과 Refresh-Token이 subject 및 Claims 구성이 똑같기 때문에 보안적으로 안좋다.
 ```Java
 @Slf4j
 @Component
@@ -2729,3 +2727,4 @@ public class UserController {
 - USER 테이블의 1:N 관계인 USER_AUTHORITY 테이블을 생성하여 권한에 대한 부분을 넣고, UserDto 조회시 MyBatis의 ResultMap을 이용하여 USER 테이블을 조회 후 USER_AUTHORITY 테이블에서 권한을 List로 조회되게 하여 한번에 조회하려고 한다.
 - /test/user은 USER 권한을 갖고 있어야지 접근할 수 있다.
 - /test/admin은 ADMIN 권한을 갖고 있어야지 접근할 수 있다.
+- AccessToken과 RefreshToken의 Subject 및 Claims 구성을 각각 다르게 변경
