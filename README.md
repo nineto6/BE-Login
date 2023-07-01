@@ -1611,7 +1611,7 @@ public class GlobalExceptionHandler {
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_05.png">
 - 로그인 후 Header에 토큰 발급 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
-- JwtAuthorizationFilter 에서 인증되어야지 BoardController에 접근할 수 있다.
+- JwtAuthorizationFilter에서 인증이 되어야지 BoardController에 접근할 수 있다.
 - POST 게시글 등록 로그 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_03.png">
 - GET 게시글 모두 조회 이미지
@@ -2256,11 +2256,11 @@ public class RefreshToken {
 
 > ## 실행 결과
 - 로그인 성공시 Access-Token, Refresh-Token을 발급한 이미지
-<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_07.png">
 - 재발급을 성공한 응답 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_13.png">
 - Redis 모니터링 이미지
-<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_08.png">
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_08.png">
 - 클라이언트 IP가 변경 및 Refresh-Token이 변조 되었을 경우 에러 응답 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_11.png">
 
@@ -2468,7 +2468,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 > ## 실행 결과
 - 회원가입 후 DB에 저장된 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_09.png">
-- 로그인시 테스트용으로 응답한 비밀번호가 암호화 된 이미지
+- 로그인시 테스트용으로 응답한 비밀번호가 암호화 된 응답 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_12.png">
 
 <br/>
@@ -2714,7 +2714,7 @@ public class UserController {
 > ## 실행 결과
 - 로그아웃 성공 응답 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_14.png">
-- 로그아웃 후 인증이 필요한 URL에 요청시 에러 이미지
+- 로그아웃이 되어있는데, 인증이 필요한 URL에 요청시 에러 응답 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_10.png">
 
 <br/>
