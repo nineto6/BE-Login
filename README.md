@@ -1136,7 +1136,7 @@ public class TestController {
 
 > ## .../api/test/generateToken URL에 Front에서 Back 서버로 요청 및 응답 확인
 - HTTP Body JSON 이미지
-<img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_02.png">
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_02.png">
 
 > ## ...api/user/login URL에 Front에서 Back 서버로 요청 및 응답 확인시 문제 발생
 - HTTP 응답시 Authorization JWT 토큰의 헤더 값을 받지 못하는 상황 발생
@@ -1261,6 +1261,9 @@ class UserMapperTest {
 <hr/>
 
 ##### 20230511
+> ## 계획
+- 사용자 인증(토큰 검증)이 되어야지 접근할 수 있는 임시 게시글을 만들기
+
 > ## BoardDto 작성
 ```Java
 @Getter
@@ -1600,6 +1603,20 @@ public class GlobalExceptionHandler {
     }
 }
 ```
+
+> ## 실행 결과
+- 회원가입 로그 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_06.png">
+- 로그인 로그 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_05.png">
+- 로그인 후 Header에 토큰 발급 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
+- JwtAuthorizationFilter 에서 인증되어야지 BoardController에 접근할 수 있다.
+- POST 게시글 등록 로그 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_03.png">
+- GET 게시글 모두 조회 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_04.png">
+
 <br/>
 <hr/>
 
@@ -2236,6 +2253,17 @@ public class RefreshToken {
     private String refreshToken;
 }
 ```
+
+> ## 실행 결과
+- 로그인 성공시 Access-Token, Refresh-Token을 발급한 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_01.png">
+- 재발급을 성공한 응답 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_13.png">
+- Redis 모니터링 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/fe_resource_08.png">
+- 클라이언트 IP가 변경 및 Refresh-Token이 변조 되었을 경우 에러 응답 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_11.png">
+
 <br/>
 <hr/>
 
@@ -2437,6 +2465,12 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     }
 }
 ```
+> ## 실행 결과
+- 회원가입 후 DB에 저장된 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_09.png">
+- 로그인시 테스트용으로 응답한 비밀번호가 암호화 된 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_12.png">
+
 <br/>
 <hr/>
 
@@ -2677,5 +2711,21 @@ public class UserController {
     }
 }
 ```
+> ## 실행 결과
+- 로그아웃 성공 응답 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_14.png">
+- 로그아웃 후 인증이 필요한 URL에 요청시 에러 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/be_resource_10.png">
+
 <br/>
 <hr/>
+
+##### 20230630
+> ## 계획
+- 현재까지 권한 부분에 대해서 anonymous로 처리 되었지만 USER, ADMIN 권한을 추가하려고 한다.
+- JwtAuthorizationFilter 한 클래스에서 Exception 응답 기능과 검증 부분을 맡아서 진행하게 되었는데, 401 (Unauthorized) 핸들러, 403 (Forbidden) 핸들러 클래스를 만들어서 역할을 분담하려고 한다.
+- JwtAuthrizationFilter에서는 오로지 검증 부분을 진행하고 성공시 SecurityContextHolder에 Authentication을 넣으려고 한다.
+- 한 사용자에게 복수의 권한을 가질 수 있게 한다. 예를 들어 ADMIN 일 때 USER 접근을 가능하게 해야하는 코드를 줄이려고 한다.
+- USER 테이블의 1:N 관계인 USER_AUTHORITY 테이블을 생성하여 권한에 대한 부분을 넣고, UserDto 조회시 MyBatis의 ResultMap을 이용하여 USER 테이블을 조회 후 USER_AUTHORITY 테이블에서 권한을 List로 조회되게 하여 한번에 조회하려고 한다.
+- /test/user은 USER 권한을 갖고 있어야지 접근할 수 있다.
+- /test/admin은 ADMIN 권한을 갖고 있어야지 접근할 수 있다.
