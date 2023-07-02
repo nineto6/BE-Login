@@ -2720,11 +2720,11 @@ public class UserController {
 
 ##### 20230630
 > ## 계획
-- 현재까지 권한 부분에 대해서 anonymous로 처리 되었지만 USER, ADMIN 권한을 추가하려고 한다.
+- 현재까지 권한 부분에 대해서 anonymous(익명 사용자)로 처리 되었지만 USER, ADMIN 권한을 추가하려고 한다.
 - JwtAuthorizationFilter 한 클래스에서 Exception 응답 기능과 검증 부분을 맡아서 진행하게 되었는데, 401 (Unauthorized) 핸들러, 403 (Forbidden) 핸들러 클래스를 만들어서 역할을 분담하려고 한다.
-- JwtAuthrizationFilter에서는 오로지 검증 부분을 진행하고 성공시 SecurityContextHolder에 Authentication을 넣으려고 한다.
-- 한 사용자에게 복수의 권한을 가질 수 있게 한다. 예를 들어 ADMIN 일 때 USER 접근을 가능하게 해야하는 코드를 줄이려고 한다.
-- USER 테이블의 1:N 관계인 USER_AUTHORITY 테이블을 생성하여 권한에 대한 부분을 넣고, UserDto 조회시 MyBatis의 ResultMap을 이용하여 USER 테이블을 조회 후 USER_AUTHORITY 테이블에서 권한을 List로 조회되게 하여 한번에 조회하려고 한다.
+- JwtAuthrizationFilter에서는 검증 부분만 진행하고 성공시 SecurityContext에 Authentication 객체를 넣으려고 한다.
+- 한 사용자에게 복수의 권한을 가질 수 있게 한다. 예를 들어 권한이 ADMIN 일 때 USER 접근을 가능하게 해야하는 코드를 줄이려고 한다.
+- USER 테이블의 1:N 관계인 USER_AUTHORITY 테이블을 생성하여 권한에 대한 부분을 넣고, UserDto 조회시 MyBatis의 ResultMap을 이용하여 USER 테이블을 조회 후 USER_AUTHORITY 테이블에서 userId에 맞는 권한을 List로 조회하게 하여 UserDto를 한번에 조회하려고 한다.
 - /test/user은 USER 권한을 갖고 있어야지 접근할 수 있다.
 - /test/admin은 ADMIN 권한을 갖고 있어야지 접근할 수 있다.
-- AccessToken과 RefreshToken의 Subject 및 Claims 구성을 각각 다르게 변경
+- AccessToken과 RefreshToken의 Subject 및 Claims 구성을 각각 다르게 변경한다.
