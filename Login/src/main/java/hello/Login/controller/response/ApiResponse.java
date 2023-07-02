@@ -5,12 +5,12 @@ import lombok.Getter;
 
 @Getter
 public class ApiResponse {
-    String result;
+    Object result;
     int resultCode;
     String resultMsg;
 
     @Builder
-    public ApiResponse(String result, int resultCode, String resultMsg) {
+    public ApiResponse(Object result, int resultCode, String resultMsg) {
         this.result = result;
         this.resultCode = resultCode;
         this.resultMsg = resultMsg;

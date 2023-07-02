@@ -1,17 +1,13 @@
 package hello.Login.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import hello.Login.common.codes.AuthConstants;
 import hello.Login.common.codes.SuccessCode;
 import hello.Login.common.utils.TokenUtils;
 import hello.Login.controller.response.ApiResponse;
-import hello.Login.controller.response.ObjectApiResponse;
 import hello.Login.model.BoardDto;
 import hello.Login.service.BoardService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,11 +47,11 @@ public class BoardController {
     }
 
     @GetMapping
-    public ResponseEntity<ObjectApiResponse> findAllBoard() {
+    public ResponseEntity<ApiResponse> findAllBoard() {
 
         List<BoardDto> list = boardService.findList();
 
-        ObjectApiResponse ar = ObjectApiResponse.builder()
+        ApiResponse ar = ApiResponse.builder()
                 .result(list)
                 .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
                 .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
