@@ -3,17 +3,45 @@
 
 <mapper namespace="hello.Login.mapper.UserMapper">
 
-    <!-- 회원가입 -->
+    <!-- 유저 등록 -->
     <insert id="save" useGeneratedKeys="true" keyProperty="userSq">
-        INSERT INTO TB_USER
-        (USER_ID, USER_PW, USER_NM, USER_ST)
+        INSERT INTO
+        TB_USER (USER_ID, USER_PW, USER_NM, USER_ST)
         VALUES (#{userId}, #{userPw}, #{userNm}, #{userSt})
     </insert>
 
-    <!-- 로그인 -->
-    <select id="login" resultType="hello.Login.model.UserDto">
+    <!-- 유저 권한 등록 -->
+    <insert id="insertAuthority" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="userAuthSq">
+        INSERT INTO
+        TB_USER_AUTHORITY (USER_SQ, USER_ID, USER_AUTHORITY)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.userSq}, #{item.userId}, #{item.userAuthority})
+        </foreach>
+    </insert>
+
+    <!-- ResultMap 작성 -->
+    <resultMap id="userAndAuthorityMap" type="hello.Login.model.UserDto">
+        <id property="userSq" column="user_sq"/>
+        <result property="userId" column="user_id"/>
+        <result property="userPw" column="user_pw"/>
+        <result property="userNm" column="user_nm"/>
+        <result property="userSt" column="user_st"/>
+        <collection column="user_id" property="userRoles" javaType="java.util.List" select="getAuthority"/>
+    </resultMap>
+
+    <!-- * Main * userId 로 조회 -->
+    <select id="findByUserId" resultMap="userAndAuthorityMap">
         SELECT t1.*
         FROM tb_user t1
-        WHERE user_id = #{userId}
+        WHERE t1.user_id = #{userId}
     </select>
+
+    <!-- Collection (SELECT Authority) -->
+    <select id="getAuthority" parameterType="String" resultType="String">
+        SELECT t1.user_authority
+        FROM TB_USER_AUTHORITY t1
+        WHERE USER_ID = #{userId}
+    </select>
+
 </mapper>
