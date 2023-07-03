@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserDto {
@@ -24,12 +26,16 @@ public class UserDto {
     // 사용자 상태
     private String userSt;
 
+    // 사용자 권한
+    private List<String> userRoles;
+
     @Builder
-    UserDto(int userSq, String userId, String userPw, String userNm, String userSt) {
+    UserDto(int userSq, String userId, String userPw, String userNm, String userSt, List<String> userRoles) {
         this.userSq = userSq;
         this.userId = userId;
         this.userPw = userPw;
         this.userNm = userNm;
         this.userSt = userSt;
+        this.userRoles = userRoles;
     }
 }

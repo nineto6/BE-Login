@@ -5,22 +5,26 @@ import lombok.Getter;
 import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Getter
 @AllArgsConstructor
 public class UserDetailsDto implements UserDetails {
 
-    @Delegate
-    /* @Delegate : UserDto 의 메서드가 위임되어서 UserDetailsDto 에서 바로 호출이 가능 */
     private UserDto userDto;
-    private Collection<? extends GrantedAuthority> authorities;
+    private List<String> roles;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        ArrayList<GrantedAuthority> authorities = new ArrayList<>();
+        for(String role : roles) {
+            authorities.add(new SimpleGrantedAuthority(role));
+        }
         return authorities;
     }
 
@@ -31,7 +35,7 @@ public class UserDetailsDto implements UserDetails {
 
     @Override
     public String getUsername() {
-        return userDto.getUserNm();
+        return userDto.getUserId();
     }
 
     @Override
