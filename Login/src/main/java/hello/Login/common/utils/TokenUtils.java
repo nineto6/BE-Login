@@ -1,19 +1,21 @@
 package hello.Login.common.utils;
 
 import hello.Login.config.JwtToken;
+import hello.Login.model.UserDetailsDto;
 import hello.Login.model.UserDto;
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
 import java.security.Key;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * JWT 관련된 토큰 Util
@@ -62,6 +64,45 @@ public class TokenUtils {
                 .RefreshToken(refreshBuilder.compact())
                 .build();
     }
+
+    /**
+     * JWT 토큰을 복호화하여 토큰에 들어있는 정보를 AuthenticationToken(인증 토큰)으로 반환하는 메서드
+     */
+    public static Authentication getAuthentication(String accessToken) {
+        Claims claims = getAccessTokenToClaimsFormToken(accessToken);
+
+        if(claims.get("auth") == null || claims.get("auth").toString().equals("")) {
+            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
+        }
+
+        // 클레임에서 권한 정보 가져오기
+        List<String> auths = getCreateRoleStrings(claims);
+
+        // 각 권한 로그 출력
+        auths.forEach(auth -> log.info("권한 : {}", auth));
+
+        // UserDetails 객체를 만들어서 Authentication 리턴
+        UserDetailsDto principal = new UserDetailsDto(UserDto
+                .builder()
+                .userId(claims.get("uid").toString())
+                .build(), auths);
+
+        return new UsernamePasswordAuthenticationToken(principal, "", principal.getAuthorities());
+    }
+
+    /**
+     * JWT 토큰 안에 Claims 의 Auth 는 "ROLE_"이 없기 때문에 Spring Security 전용으로 "ROLE_" 문자열을 붙여서 반환하는 메서드
+     */
+    private static List<String> getCreateRoleStrings(Claims claims) {
+        return Arrays.stream(claims.get("auth") // claims 에서 "auth" 로 된 권한 정보를 가져와서
+                        .toString() // 문자열 변환
+                        .split(","))// "USER, ADMIN" -> "USER", "ADMIN"
+                .collect(Collectors.toList())// List 로 받아서 반환
+                .stream() // 스트림
+                .map("ROLE_"::concat) // 각 "USER" -> "ROLE_USER", "ADMIN" -> "ROLE_ADMIN" 으로 변환
+                .collect(Collectors.toList()); // List 로 받아서 반환
+    }
+
 
     /**
      * 엑세스 토큰을 기반으로 사용자 정보를 반환 해주는 메서드
@@ -186,7 +227,27 @@ public class TokenUtils {
 
         claims.put("uid", userDto.getUserId());
         claims.put("unm", userDto.getUserNm());
+
+        StringBuilder authority = getRemoveRoleStrings(userDto);
+        claims.put("auth", authority);
         return claims;
+    }
+
+    /**
+     * JWT 토큰 안에 Claims 의 Auth 에 "ROLE_"을 없애고 권한들을 각각 ','와 함께 StringBuilder 로 더해서 반환하는 메서드
+     */
+    private static StringBuilder getRemoveRoleStrings(UserDto userDto) {
+        List<String> collect = userDto.getUserRoles()
+                .stream()// ROLE_USER
+                .map(string -> string.split("_")[1]) // "ROLE", "USER" -> [1] -> "USER"
+                .collect(Collectors.toList()); // List 받아서 반환
+
+        StringBuilder authority = new StringBuilder();
+        collect.forEach(string -> // StringBuilder 로 List 안에 존재하는 권한들을 ","와 함께 문자열 더하기
+                authority
+                        .append(string)
+                        .append(","));
+        return authority;
     }
 
     /**
