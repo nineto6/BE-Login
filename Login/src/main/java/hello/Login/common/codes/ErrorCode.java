@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public enum ErrorCode {
     BUSINESS_EXCEPTION_ERROR(200, "B999", "Business Exception Error"),
+    FORBIDDEN(403, "B998", "Forbidden Error Exception"),
+    UNAUTHORIZED(401, "B997", "Unauthorized Error Exception"),
 
     /**
      * *********************************** custom Error CodeList ********************************************
