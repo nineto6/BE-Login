@@ -9,6 +9,7 @@ import hello.Login.config.redis.RedisRepository;
 import hello.Login.config.redis.RefreshToken;
 import hello.Login.model.UserDetailsDto;
 import hello.Login.model.UserDto;
+import hello.Login.model.codes.Account;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
@@ -50,8 +51,8 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
         HashMap<String, Object> responseMap = new HashMap<>();
 
         JSONObject jsonObject;
-        // [STEP3-1] 사용자의 상태가 '휴먼 상태' 인 경우 응답 값으로 전달 할 데이터
-        if(userDto.getUserSt().equals("D")) {
+        // [STEP3-1] 사용자의 상태가 '휴면 상태' 인 경우 응답 값으로 전달 할 데이터
+        if(userDto.getUserSt().equals(Account.SLEEPER.getState())) {
             responseMap.put("userInfo", userVoObj);
             responseMap.put("resultCode", 9001);
             responseMap.put("token", null);
@@ -59,7 +60,7 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
             jsonObject = new JSONObject(responseMap);
         }
 
-        // [STEP3-2] 사용자의 상태가 '휴먼 상태'가 아닌 경우 응답 값으로 전달할 데이터
+        // [STEP3-2] 사용자의 상태가 '휴면 상태'가 아닌 경우 응답 값으로 전달할 데이터
         else {
             // 1. 일반 계정일 경우 데이터 세팅
             responseMap.put("userInfo", userVoObj);
@@ -86,7 +87,7 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
         PrintWriter printWriter = response.getWriter();
-        printWriter.print(jsonObject); // 최정 저장된 '사용자 정보', '사이트 정보' Front 전달
+        printWriter.print(jsonObject); // 최종 저장된 '사용자 정보', '사이트 정보' Front 전달
         printWriter.flush();
         printWriter.close();
     }
