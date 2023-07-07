@@ -1,9 +1,9 @@
-drop table tb_user cascade;
+DROP TABLE TB_USER CASCADE;
 
-create table tb_user(
-   user_sq        int auto_increment primary key,
-   user_id         varchar(20) not null,
-   user_pw       varchar(60) not null,
-   user_nm       varchar(20) not null,
-   user_st         varchar(1) not null
+CREATE TABLE TB_USER(
+   USER_SQ       INT AUTO_INCREMENT PRIMARY KEY,
+   USER_ID       VARCHAR(20) NOT NULL,
+   USER_PW       VARCHAR(60) NOT NULL,
+   USER_NM       VARCHAR(20) NOT NULL,
+   USER_ST       VARCHAR(1) NOT NULL CHECK(USER_ST IN ('Y', 'N'))
 );
