@@ -3,9 +3,7 @@ package hello.Login.config;
 import hello.Login.common.codes.AuthConstants;
 import hello.Login.config.filter.CustomAuthenticationFilter;
 import hello.Login.config.filter.JwtAuthorizationFilter;
-import hello.Login.config.handler.CustomAuthFailureHandler;
-import hello.Login.config.handler.CustomAuthSuccessHandler;
-import hello.Login.config.handler.CustomAuthenticationProvider;
+import hello.Login.config.handler.*;
 import hello.Login.config.redis.RedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +17,13 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -43,26 +45,18 @@ public class WebSecurityConfig {
 
     /**
      * 1. 정적 자원(Resource)에 대해서 인증된 사용자가 정적 자원의 접근에 대해 ‘인가’에 대한 설정을 담당하는 메서드이다.
+     * resources(css, js 등)의 경우 securityContext 등에 대한 조회가 불필요 하므로 disable 한다.
      * @return WebSecurityCustomizer
      */
-    // @Bean
-    // public WebSecurityCustomizer webSecurityCustomizer() {
-        // 정적 자원에 대해서 Security 를 적용하지 않음으로 설정
-     //    return web -> web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
-    // }
-
-    /**
-     * 1. WebSecurity.ignoring() 을 사용할 경우 Spring Security 의 어떠한 보호도 받을 수 없기 때문에 permitAll 를 사용하라고
-     * 권장하고 있다. 또한 ignoring() 을 사용할 때만 얻을 수 있는 성능상의 이점도 없다고 하여 성능을 고려한 설정 방법을 참고
-     * @param http
-     * @return
-     * @throws Exception
-     */
     @Bean
-    @Order(1)
-    public SecurityFilterChain exceptionSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.requestMatchers((matchers) -> matchers.antMatchers(PathRequest.toStaticResources().atCommonLocations().toString()));
-        return http.build();
+    @Order(0)
+    public SecurityFilterChain resources(HttpSecurity http) throws Exception {
+        return http.requestMatchers(matchers -> matchers.antMatchers("/resources/**"))
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .requestCache(RequestCacheConfigurer::disable)
+                .securityContext(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable)
+                .build();
     }
 
     /**
@@ -72,7 +66,7 @@ public class WebSecurityConfig {
      * @throws Exception exception
      */
     @Bean
-    @Order(2)
+    @Order(1)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.debug("[+] WebSecurityConfig Start !");
 
@@ -80,8 +74,24 @@ public class WebSecurityConfig {
                 // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf 를 사용하지 않는다.
                 .csrf().disable()
 
-                // [STEP2] 토큰을 활용하는 경우 모든 요청에 대해 '인가'에 대해서 적용
-                .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
+                // [STEP2-1] 401, 403 Exception 핸들링 지정
+                .exceptionHandling()
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint())
+                .accessDeniedHandler(jwtAccessDeniedHandler())
+                .and()
+
+                // [STEP2-2] JwtAuthorizationFilter 에서 사용자 인증 후 인가를 받은 권한에 대하여 접근 지정
+                .authorizeHttpRequests()
+                .antMatchers(
+                        "/api/users/signup" // 회원가입
+                        , "/api/users/duplicheck" // id 중복 체크
+                        , "/api/users/reissue" // Jwt 토큰 재발급
+                        , "/api/test/generateToken" // 토큰 발급 테스트
+                ).permitAll() // 모든 권한 접근 가능 (Anonymous 포함)
+                .antMatchers("/api/test/user").hasRole("USER") // USER 권한이 있을경우에만 접근 가능
+                .antMatchers("/api/test/admin").hasRole("ADMIN") // ADMIN 권한이 있을경우에만 접근 가능
+                .anyRequest().authenticated() // 나머지 URL 은 인증이 되어야지 접근 가능(anonymous 포함 X)
+                .and()
 
                 // [STEP3] Spring Security JWT Filter Load
                 .addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class)
@@ -165,7 +175,7 @@ public class WebSecurityConfig {
 
     /**
      * 9. CORS 설정
-     * @return
+     * @return UrlBasedCorsConfigurationSource
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -191,6 +201,24 @@ public class WebSecurityConfig {
     @Bean
     public JwtAuthorizationFilter jwtAuthorizationFilter() {
         return new JwtAuthorizationFilter(redisTemplate);
+    }
+
+    /**
+     * 11. 401 Unauthorized Exception 처리
+     * @return JwtAuthenticationEntryPoint
+     */
+    @Bean
+    public AuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint();
+    }
+
+    /**
+     * 12. 403 Forbidden Exception 처리
+     * @return JwtAccessDeniedHandler
+     */
+    @Bean
+    public AccessDeniedHandler jwtAccessDeniedHandler() {
+        return new JwtAccessDeniedHandler();
     }
 
 }
