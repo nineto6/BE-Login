@@ -49,7 +49,6 @@ public class UserController {
                 .userId(userDto.getUserId())
                 .userPw(userDto.getUserPw())
                 .userNm(userDto.getUserNm())
-                .userSt("X") // 유저 상태
                 .build();
 
         userService.signUp(user);
@@ -74,7 +73,7 @@ public class UserController {
                 .userId(userId)
                 .build();
 
-        Optional<UserDto> findByIdDto = userService.login(checkUserId);
+        Optional<UserDto> findByIdDto = userService.findByUserId(userId);
 
         ApiResponse ar = ApiResponse.builder()
                 .result((findByIdDto.isEmpty()) ? "true" : "false")
@@ -111,9 +110,7 @@ public class UserController {
                 if (refreshToken.getIp().equals(currentIpAddress)) {
 
                     // findById 실행 후 userDto 값 가져오기
-                    Optional<UserDto> userDto = userService.login(UserDto.builder()
-                            .userId(refreshToken.getUserId())
-                            .build());
+                    Optional<UserDto> userDto = userService.findByUserId(refreshToken.getUserId());
 
                     if(userDto.isPresent()) { // userDto 값이 있을 경우 (null 이 아닌 경우)
                         // 6. Redis 에 저장된 RefreshToken 정보를 기반으로 JWT Token 생성
