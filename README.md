@@ -2030,7 +2030,7 @@ public final class AuthConstants {
 }
 ```
 
-> ## WebSecurityConfig 코드 변경 (추가된 부분)
+> ## WebSecurityConfig 코드 변경
 ```Java
 public class WebSecurityConfig {
     private final RedisRepository redisRepository; // 추가
@@ -2127,11 +2127,11 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
 }
 ```
 
-> ## TestController 코드 변경 및 테스트
+> ## TestController 코드 변경
 ```Java
 @Slf4j
 @RestController
-@RequestMapping("api/test")
+@RequestMapping("/api/test")
 public class TestController {
 
     @PostMapping("/generateToken")
@@ -2152,7 +2152,7 @@ public class TestController {
 }
 ```
 
-> ## UserControler 코드 추가 및 테스트
+> ## UserControler 코드 추가
 - Refresh-Token 유효성 검사 및 IP 확인 후 Access-Token, Refresh-Token 재 발급 
 ```Java
 public class UserController {
@@ -2725,6 +2725,8 @@ public class UserController {
 - JwtAuthrizationFilter에서는 검증 부분만 진행하고 성공시 SecurityContext에 Authentication 객체를 넣으려고 한다.
 - 한 사용자에게 복수의 권한을 가질 수 있게 한다. 예를 들어 권한이 ADMIN 일 때 USER 접근을 가능하게 해야하는 코드를 줄이려고 한다.
 - USER 테이블의 1:N 관계인 USER_AUTHORITY 테이블을 생성하여 권한에 대한 부분을 넣고, UserDto 조회시 MyBatis의 ResultMap을 이용하여 USER 테이블을 조회 후 USER_AUTHORITY 테이블에서 userId에 맞는 권한을 List로 조회하게 하여 UserDto를 한번에 조회하려고 한다.
-- /test/user은 USER 권한을 갖고 있어야지 접근할 수 있다.
-- /test/admin은 ADMIN 권한을 갖고 있어야지 접근할 수 있다.
+- /api/test/user은 USER 권한을 갖고 있어야지 접근할 수 있다.
+- /api/test/admin은 ADMIN 권한을 갖고 있어야지 접근할 수 있다.
+- /api/test/generateToken은 권한 없어도 아무나 접근할 수 있다.(익명 사용자 접근 허용)
 - AccessToken과 RefreshToken의 Subject 및 Claims 구성을 각각 다르게 변경한다.
+- 휴면 유저 관련하여 USER 테이블 변경 및 enum으로 관리
