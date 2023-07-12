@@ -2730,3 +2730,50 @@ public class UserController {
 - /api/test/generateToken은 권한 없어도 아무나 접근할 수 있다.(익명 사용자 접근 허용)
 - AccessToken과 RefreshToken의 Subject 및 Claims 구성을 각각 다르게 변경한다.
 - 휴면 유저 관련하여 USER 테이블 변경 및 enum으로 관리
+
+> ## TB_USER_AUTHORITY 테이블 정의
+
+> ## Role 코드 변경
+
+> ## UserDto 코드 변경
+
+> ## UserDetailsDto 코드 변경
+
+> ## UserMapper 코드 변경
+
+> ## UserMapper XML 코드 변경
+
+> ## UserMapperTest 코드 변경
+
+> ## AuthorityDto 작성
+
+> ## UserService 코드 변경
+
+> ## UserServiceImpl 코드 변경
+
+> ## UserDetailsServiceImpl 코드 변경
+
+> ## TokenUtils 코드 변경
+
+> ## JwtAuthorizationFilter 코드 변경
+
+> ## CustomAuthenticationProvider 코드 변경
+
+> ## ErrorCode 코드 추가
+
+> ## JwtAccessDeniedHandler 작성
+
+> ## JwtAuthenticationEntryPoint 작성
+
+> ## Account 작성
+- 휴면 계정 및 일반 계정 관리를 위한 enum
+
+> ## CustomAuthSuccessHandler 코드 변경
+
+> ## TB_USER 테이블 변경
+
+> ## WebSecurityConfig 코드 변경
+
+> ## 실행 결과
+<br/>
+<hr/>
