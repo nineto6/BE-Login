@@ -3,28 +3,30 @@
 ## 시작하기 전에...
 JSON Web Token을 이용하여 REST API 인증 처리를 만들어보려고 한다. 
 
-> 현재 `Front-End` 와 `Back-End` 는 다른 환경에서 개발하고 있음
+> Spring Boot + React 프로젝트 <br>
+
+> 현재 `Back-End` 와 `Front-End` 는 다른 환경에서 개발하고 있음
 
 ## 요구사항
 어떤 사용자는 어떤 페이지에 접근하기 위해서 로그인이 반드시 필요하다.
 이를 위해 이전에 회원가입을 진행하고 로그인을 한 뒤에 해당 페이지에 접근한다.
 로그인이 되어 있지 않을 시, 해당 페이지로의 접근은 불가하다.
 
-### 인증 없이 접근 가능한 URL
+### 인증 없이 접근 가능
 |기능|URL|
 |------|---|
 |회원가입|[POST] /api/users/signup|
 |로그인|[GET] /api/users/login|
 |사용자 아이디 중복 체크|[GET] /api/users/duplicheck?userId=사용자아이디|
 
-### 인증이 있어야 접근 가능한 URL
+### 인증이 있어야 접근 가능
 |기능|URL|
 |------|---|
 |로그아웃|[GET] /api/users/logout|
 |게시글 생성|[POST] /api/board|
 |게시글 전체 조회|[GET] /api/board|
 
-### Refresh-Token을 가지고 Access-Token을 재발급하는 URL
+### Refresh-Token을 가지고 Access-Token을 재발급
 |기능|URL|
 |------|---|
 |재발급|[GET] /api/users/reissue|
@@ -343,16 +345,16 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
         HashMap<String, Object> responseMap = new HashMap<>();
 
         JSONObject jsonObject;
-        // [STEP3-1] 사용자의 상태가 '휴먼 상태' 인 경우 응답 값으로 전달 할 데이터
+        // [STEP3-1] 사용자의 상태가 '휴면 상태' 인 경우 응답 값으로 전달 할 데이터
         if(userDto.getUserSt().equals("D")) {
             responseMap.put("userInfo", userVoObj);
             responseMap.put("resultCode", 9001);
             responseMap.put("token", null);
-            responseMap.put("failMsg", "휴먼 계정입니다.");
+            responseMap.put("failMsg", "휴면 계정입니다.");
             jsonObject = new JSONObject(responseMap);
         }
 
-        // [STEP3-2] 사용자의 상태가 '휴먼 상태'가 아닌 경우 응답 값으로 전달할 데이터
+        // [STEP3-2] 사용자의 상태가 '휴면 상태'가 아닌 경우 응답 값으로 전달할 데이터
         else {
             // 1. 일반 계정일 경우 데이터 세팅
             responseMap.put("userInfo", userVoObj);
@@ -1114,7 +1116,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 ```Java
 @Slf4j
 @RestController
-@RequestMapping("api/test")
+@RequestMapping("/api/test")
 public class TestController {
 
     @PostMapping("/generateToken")
@@ -2082,16 +2084,16 @@ public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuc
         HashMap<String, Object> responseMap = new HashMap<>();
 
         JSONObject jsonObject;
-        // [STEP3-1] 사용자의 상태가 '휴먼 상태' 인 경우 응답 값으로 전달 할 데이터
+        // [STEP3-1] 사용자의 상태가 '휴면 상태' 인 경우 응답 값으로 전달 할 데이터
         if(userDto.getUserSt().equals("D")) {
             responseMap.put("userInfo", userVoObj);
             responseMap.put("resultCode", 9001);
             responseMap.put("token", null);
-            responseMap.put("failMsg", "휴먼 계정입니다.");
+            responseMap.put("failMsg", "휴면 계정입니다.");
             jsonObject = new JSONObject(responseMap);
         }
 
-        // [STEP3-2] 사용자의 상태가 '휴먼 상태'가 아닌 경우 응답 값으로 전달할 데이터
+        // [STEP3-2] 사용자의 상태가 '휴면 상태'가 아닌 경우 응답 값으로 전달할 데이터
         else {
             // 1. 일반 계정일 경우 데이터 세팅
             responseMap.put("userInfo", userVoObj);
@@ -2137,19 +2139,22 @@ public class TestController {
     @PostMapping("/generateToken")
     @Operation(summary = "토큰 발급", description = "사용자 정보를 기반으로 JWT 를 발급하는 API")
     public ResponseEntity<ApiResponse> selectCodeList(@RequestBody UserDto userDto) {
-        JwtToken jwtToken = TokenUtils.generateJwtToken(userDto); // 변경
+        // 토큰 생성
+        JwtToken jwtToken = TokenUtils.generateJwtToken(userDto);
+
+        List<String> list = new ArrayList<>();
+        list.add("Access-Token : " + jwtToken.getAccessToken());
+        list.add("Refresh-Token : " + jwtToken.getRefreshToken());
 
         ApiResponse ar = ApiResponse.builder()
                 // BEARER {토큰} 형태로 반환을 해줍니다.
-                .result("Access-Token"  + " " + jwtToken.getAccessToken()
-                        + "Refresh-Token" + " " + jwtToken.getRefreshToken()) // 변경
+                .result(list)
                 .resultCode(SuccessCode.SELECT_SUCCESS.getStatus())
                 .resultMsg(SuccessCode.SELECT_SUCCESS.getMessage())
                 .build();
 
         return new ResponseEntity<>(ar, HttpStatus.OK);
     }
-}
 ```
 
 > ## UserControler 코드 추가
@@ -2732,48 +2737,1013 @@ public class UserController {
 - 휴면 유저 관련하여 USER 테이블 변경 및 enum으로 관리
 
 > ## TB_USER_AUTHORITY 테이블 정의
+```SQL
+create table tb_user_authority(
+   user_auth_sq        INT AUTO_INCREMENT PRIMARY KEY,
+   user_sq             INT NOT NULL,
+   user_id             VARCHAR(20) NOT NULL,
+   user_authority      VARCHAR(20) NOT NULL,
+   FOREIGN KEY (user_sq) REFERENCES TB_USER(user_sq) ON DELETE CASCADE
+);
+```
 
-> ## Role 코드 변경
+> ## Role 작성
+```Java
+@Getter
+public enum Role {
+    ADMIN("ROLE_ADMIN"),
+    USER("ROLE_USER");
+
+    private final String auth;
+
+    Role(String auth){
+        this.auth = auth;
+    }
+}
+```
 
 > ## UserDto 코드 변경
+```Java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class UserDto {
+
+    // 사용자 시퀀스
+    private int userSq;
+
+    // 사용자 아이디
+    private String userId;
+
+    // 사용자 패스워드
+    private String userPw;
+
+    // 사용자 이름
+    private String userNm;
+
+    // 사용자 상태
+    private String userSt;
+
+    // 사용자 권한 
+    private List<String> userRoles; // 추가 
+
+    @Builder
+    UserDto(int userSq, String userId, String userPw, String userNm, String userSt, List<String> userRoles) {
+        this.userSq = userSq;
+        this.userId = userId;
+        this.userPw = userPw;
+        this.userNm = userNm;
+        this.userSt = userSt;
+        this.userRoles = userRoles;
+    }
+}
+```
 
 > ## UserDetailsDto 코드 변경
+```Java
+@Slf4j
+@Getter
+@AllArgsConstructor
+public class UserDetailsDto implements UserDetails {
+
+    private UserDto userDto;
+    private List<String> roles; // 추가
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // 추가 부분
+        ArrayList<GrantedAuthority> authorities = new ArrayList<>();
+        for(String role : roles) {
+            authorities.add(new SimpleGrantedAuthority(role));
+        }
+        return authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return userDto.getUserPw();
+    }
+
+    @Override
+    public String getUsername() {
+        return userDto.getUserId();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return false;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return false;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return false;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return false;
+    }
+}
+```
 
 > ## UserMapper 코드 변경
+```Java
+@Mapper
+public interface UserMapper {
+    void save(UserDto userDto);
+    void insertAuthority(List<AuthorityDto> authorities);
+    Optional<UserDto> findByUserId(String userId); // 기존 login 
+}
+```
 
 > ## UserMapper XML 코드 변경
+```XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hello.Login.mapper.UserMapper">
+
+    <!-- 유저 등록 -->
+    <insert id="save" useGeneratedKeys="true" keyProperty="userSq">
+        INSERT INTO
+        TB_USER (USER_ID, USER_PW, USER_NM, USER_ST)
+        VALUES (#{userId}, #{userPw}, #{userNm}, #{userSt})
+    </insert>
+
+    <!-- 유저 권한 등록 -->
+    <insert id="insertAuthority" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="userAuthSq">
+        INSERT INTO
+        TB_USER_AUTHORITY (USER_SQ, USER_ID, USER_AUTHORITY)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.userSq}, #{item.userId}, #{item.userAuthority})
+        </foreach>
+    </insert>
+
+    <!-- ResultMap 작성 -->
+    <resultMap id="userAndAuthorityMap" type="hello.Login.model.UserDto">
+        <id property="userSq" column="user_sq"/>
+        <result property="userId" column="user_id"/>
+        <result property="userPw" column="user_pw"/>
+        <result property="userNm" column="user_nm"/>
+        <result property="userSt" column="user_st"/>
+        <collection column="user_id" property="userRoles" javaType="java.util.List" select="getAuthority"/>
+    </resultMap>
+
+    <!-- * Main * userId 로 조회 -->
+    <select id="findByUserId" resultMap="userAndAuthorityMap">
+        SELECT t1.*
+        FROM tb_user t1
+        WHERE t1.user_id = #{userId}
+    </select>
+
+    <!-- Collection (SELECT Authority) -->
+    <select id="getAuthority" parameterType="String" resultType="String">
+        SELECT t1.user_authority
+        FROM TB_USER_AUTHORITY t1
+        WHERE USER_ID = #{userId}
+    </select>
+
+</mapper>
+```
 
 > ## UserMapperTest 코드 변경
+```Java
+@SpringBootTest
+@Transactional
+@Slf4j
+class UserMapperTest {
+
+    @Autowired UserMapper userMapper;
+
+    @Test
+    @DisplayName("유저 저장 테스트")
+    void save() {
+        //given
+        UserDto user = UserDto.builder()
+                .userId("hello123")
+                .userPw("123123")
+                .userNm("헬로")
+                .userSt("X")
+                .build();
+
+        // when
+        userMapper.save(user);
+        log.info("userSq = {}", user.getUserSq());
+
+        // then
+        Optional<UserDto> login = userMapper.findByUserId("hello123");
+
+        log.info("login is empty = {}", login.isEmpty());
+        assertThat(login.isEmpty()).isFalse();
+    }
+
+    @Test
+    @DisplayName("권한 저장 2개 테스트")
+    void insertListOfAuthority() {
+        // given
+        UserDto user = UserDto.builder()
+                .userId("hello123")
+                .userPw("123123")
+                .userNm("헬로")
+                .userSt("X")
+                .build();
+
+        userMapper.save(user);
+
+        ArrayList<AuthorityDto> auth = new ArrayList<>();
+        auth.add(AuthorityDto.builder()
+                .userId("hello123")
+                .userSq(user.getUserSq())
+                .userAuthority(Role.USER.getAuth()).build());
+
+        auth.add(AuthorityDto.builder()
+                .userId("hello123")
+                .userSq(user.getUserSq())
+                .userAuthority(Role.ADMIN.getAuth()).build());
+
+        // when
+        userMapper.insertAuthority(auth);
+
+        // then userId 로 조회 후 권한 존재 유무 확인
+        Optional<UserDto> login = userMapper.findByUserId("hello123");
+        List<String> userRoles = login.get().getUserRoles();
+
+        assertThat(userRoles.size()).isEqualTo(2);
+        assertThat(userRoles.contains(Role.USER.getAuth())).isTrue();
+        assertThat(userRoles.contains(Role.ADMIN.getAuth())).isTrue();
+    }
+}
+```
 
 > ## AuthorityDto 작성
+```Java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class AuthorityDto {
+    private int userAuthSq;
+    private int userSq;
+    private String userId;
+    private String userAuthority;
+
+    @Builder
+    public AuthorityDto(int userAuthSq, int userSq, String userId, String userAuthority) {
+        this.userAuthSq = userAuthSq;
+        this.userSq = userSq;
+        this.userId = userId;
+        this.userAuthority = userAuthority;
+    }
+}
+
+```
 
 > ## UserService 코드 변경
+```Java
+public interface UserService {
+    Optional<UserDto> findByUserId(String userDto); // login -> findByUserId
+    void signUp(UserDto userDto);
+}
+
+```
 
 > ## UserServiceImpl 코드 변경
+```Java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService{
+
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+
+    /**
+     * 로그인 구현체
+     * @param String UserId
+     * @return Optional<UserDto>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UserDto> findByUserId(String userId) {
+        return userMapper.findByUserId(userId);
+    }
+
+    @Override
+    @Transactional
+    public void signUp(UserDto userDto) {
+        Optional<UserDto> selectedUserDto = userMapper.findByUserId(userDto.getUserId()); // findByUserId
+
+        if(selectedUserDto.isEmpty()) {
+            UserDto saveUserDto = UserDto.builder()
+                    .userId(userDto.getUserId())
+                    .userPw(passwordEncoder.encode(userDto.getUserPw())) // 패스워드 암호화
+                    .userNm(userDto.getUserNm())
+                    .userSt(Account.UNSLEEPER.getState())
+                    .build();
+            // 유저 저장
+            userMapper.save(saveUserDto);
+
+            // 유저 권한 부여 (추가 부분)
+            userMapper.insertAuthority(Collections.singletonList(AuthorityDto.builder()
+                    .userSq(saveUserDto.getUserSq())
+                    .userId(saveUserDto.getUserId())
+                    .userAuthority(Role.USER.getAuth())
+                    .build()));
+            return;
+        }
+
+        throw new BusinessExceptionHandler(ErrorCode.INSERT_ERROR.getMessage(), ErrorCode.INSERT_ERROR);
+    }
+}
+```
 
 > ## UserDetailsServiceImpl 코드 변경
+```Java
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    private final UserService userService;
+
+    public UserDetailsServiceImpl(UserService us) {
+        this.userService = us;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
+        // 사용자 정보가 존재하지 않는 경우 예외 처리
+        if(userId == null || userId.equals("")) {
+            return userService.findByUserId(userId)
+                    .map(u -> new UserDetailsDto(u, u.getUserRoles()))
+                    .orElseThrow(() -> new AuthenticationServiceException(userId));
+        }
+
+        // 비밀번호가 맞지 않는 경우 예외 처리
+        else {
+            return userService.findByUserId(userId)
+                    .map(u -> new UserDetailsDto(u, u.getUserRoles()))
+                    .orElseThrow(() -> new BadCredentialsException(userId));
+        }
+    }
+}
+```
 
 > ## TokenUtils 코드 변경
+```Java
+@Slf4j
+@Component
+public class TokenUtils {
+    // ... 기존 코드 생략
+
+      /**
+     * JWT 토큰을 복호화하여 토큰에 들어있는 정보를 AuthenticationToken(인증 토큰)으로 반환하는 메서드
+     */
+    public static Authentication getAuthentication(String accessToken) {
+        Claims claims = getAccessTokenToClaimsFormToken(accessToken);
+
+        if(claims.get("auth") == null || claims.get("auth").toString().equals("")) {
+            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
+        }
+
+        // 클레임에서 권한 정보 가져오기
+        List<String> auths = getCreateRoleStrings(claims);
+
+        // 각 권한 로그 출력
+        auths.forEach(auth -> log.info("권한 : {}", auth));
+
+        // UserDetails 객체를 만들어서 Authentication 리턴
+        UserDetailsDto principal = new UserDetailsDto(UserDto
+                .builder()
+                .userId(claims.get("uid").toString())
+                .build(), auths);
+
+        return new UsernamePasswordAuthenticationToken(principal, "", principal.getAuthorities());
+    }
+
+    /**
+     * JWT 토큰 안에 Claims 의 Auth 는 "ROLE_"이 없기 때문에 Spring Security 전용으로 "ROLE_" 문자열을 붙여서 반환하는 메서드
+     */
+    private static List<String> getCreateRoleStrings(Claims claims) {
+        return Arrays.stream(claims.get("auth") // claims 에서 "auth" 로 된 권한 정보를 가져와서
+                        .toString() // 문자열 변환
+                        .split(","))// "USER, ADMIN" -> "USER", "ADMIN"
+                .collect(Collectors.toList())// List 로 받아서 반환
+                .stream() // 스트림
+                .map("ROLE_"::concat) // 각 "USER" -> "ROLE_USER", "ADMIN" -> "ROLE_ADMIN" 으로 변환
+                .collect(Collectors.toList()); // List 로 받아서 반환
+    }
+
+    /**
+     * Access-Token 전용 사용자 정보를 기반으로 클래임을 생성해주는 메서드
+     * @param userDto 사용자 정보
+     * @return Map<String, Object>
+     */
+    private static Map<String, Object> createAccessClaims(UserDto userDto) {
+        // 공개 클레임에 사용자의 이름과 이메일을 설정하여 정보를 조회할 수 있다.
+        // JWT 를 최대한 짧게 만들기 위해 클레임네임을 전부 약자로 변경
+        // 클레임셋의 내용이 많아지면 토큰의 길이도 같이 길어지기 때문에 되도록 최소화한다.
+        Map<String, Object> claims = new HashMap<>();
+
+        log.info("userId : {}", userDto.getUserId());
+        log.info("userNm : {}", userDto.getUserNm());
+
+        claims.put("uid", userDto.getUserId());
+        claims.put("unm", userDto.getUserNm());
+
+        StringBuilder authority = getRemoveRoleStrings(userDto); // 추가
+        claims.put("auth", authority); // 추가
+        return claims;
+    }
+
+    /**
+     * JWT 토큰 안에 Claims 의 Auth 에 "ROLE_"을 없애고 권한들을 각각 ','와 함께 StringBuilder 로 더해서 반환하는 메서드
+     */
+    private static StringBuilder getRemoveRoleStrings(UserDto userDto) {
+        List<String> collect = userDto.getUserRoles()
+                .stream()// ROLE_USER
+                .map(string -> string.split("_")[1]) // "ROLE", "USER" -> [1] -> "USER"
+                .collect(Collectors.toList()); // List 받아서 반환
+
+        StringBuilder authority = new StringBuilder();
+        collect.forEach(string -> // StringBuilder 로 List 안에 존재하는 권한들을 ","와 함께 문자열 더하기
+                authority
+                        .append(string)
+                        .append(","));
+        return authority;
+    }
+
+    // ... 기존 코드 생략
+}
+```
 
 > ## JwtAuthorizationFilter 코드 변경
+- Deniedhandler, EntryPoint에서 response 처리를 하기 때문에 인가만 담당하는 JwtAuthorizationFilter  
+```Java
+@Slf4j
+@RequiredArgsConstructor
+public class JwtAuthorizationFilter extends OncePerRequestFilter {
+    private final RedisTemplate<String, String> redisTemplate;
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // [STEP1] Client 에서 API 를 요청할 때 Header 를 확인합니다.
+        String header = request.getHeader(AuthConstants.AUTH_HEADER);
+        log.debug("[+] header Check: {}", header);
+
+        // [STEP2-1] Header 내에 토큰이 존재하는 경우
+        if (header != null && !header.equalsIgnoreCase("")) {
+
+            // [STEP2-2] Header 내에 토큰을 추출합니다.
+            String token = TokenUtils.getTokenFormHeader(header);
+
+            // [STEP3-1] 추출한 엑세스 토큰이 유효한지 여부를 체크합니다.
+            if (token != null && TokenUtils.isValidAccessToken(token)) {
+
+                // [STEP3-2] Redis 에 해당 Access-Token 로그아웃 확인
+                String isLogout = redisTemplate.opsForValue().get(token);
+
+                // [STEP3-3]로그아웃이 되어 있지 않은 경우 해당 토큰은 정상적으로 작동
+                if (ObjectUtils.isEmpty(isLogout)) {
+                    // [STEP4] 토큰을 기반으로 사용자 아이디를 반환 받는 메서드
+                    String userId = TokenUtils.getUserIdFormAccessToken(token);
+                    log.debug("[+] userId Check: {}", userId);
+
+                    // [STEP5] 사용자 아이디가 존재하는지 여부 체크
+                    if (userId != null && !userId.equalsIgnoreCase("")) {
+
+                        // 인증에 성공하면 SecurityContextHolder 에 인증된 Authentication 객체를 집어 넣음으로써 인가한다.
+                        log.info("[+] Jwt 토큰 허가, SecurityContextHolder 에 인증 등록!!");
+                        Authentication auth = TokenUtils.getAuthentication(token);
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
+                } else {
+                    log.info("Jwt 토큰 : {}", isLogout);
+                }
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+}
+```
 
 > ## CustomAuthenticationProvider 코드 변경
+```Java
+/**
+ * 전달받은 사용자의 아이디와 비밀번호를 기반으로 비즈니스 로직을 처리하여 사용자의 ‘인증’에 대해서 검증을 수행하는 클래스입니다.
+ * CustomAuthenticationFilter 로 부터 생성한 토큰을 통하여 ‘UserDetailsService’를 통해 데이터베이스 내에서 정보를 조회합니다.
+ */
+@Slf4j
+@RequiredArgsConstructor
+public class CustomAuthenticationProvider implements AuthenticationProvider {
 
+    @Resource
+    private UserDetailsService userDetailsService;
+
+    @NonNull
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        log.debug("2.CustomAuthenticationProvider");
+
+        UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
+
+        // 'AuthenticationFilter' 에서 생성된 토큰으로부터 아이디와 비밀번호를 조회함
+        String userId = token.getName();
+        String userPw = (String) token.getCredentials();
+
+        // Spring Security - UserDetailsService 를 통해 DB 에서 아이디로 사용자 조회
+        UserDetailsDto userDetailsDto = (UserDetailsDto) userDetailsService.loadUserByUsername(userId);
+
+        // passwordEncoder 를 이용하여 userPw 와 DB 에서 조회한 userDetailsDto.getUserPw(인코딩된) 비밀번호를 비교
+        if(!(passwordEncoder.matches(userPw, userDetailsDto.getUserPw()))) { // 변경 부분
+            throw new BadCredentialsException(userDetailsDto.getUserNm() + " Invalid password");
+        if(!(passwordEncoder.matches(userPw, userDetailsDto.getPassword()))) {
+            throw new BadCredentialsException(userDetailsDto.getPassword() + " Invalid password");
+        }
+
+        return new UsernamePasswordAuthenticationToken(userDetailsDto, userPw, userDetailsDto.getAuthorities());
+    }
+
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return authentication.equals(UsernamePasswordAuthenticationToken.class);
+    }
+}
+```
 > ## ErrorCode 코드 추가
+```Java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public enum ErrorCode {
+    BUSINESS_EXCEPTION_ERROR(200, "B999", "Business Exception Error"),
+    
+    // 추가 부분
+    FORBIDDEN(403, "B998", "Forbidden Error Exception"),
+    UNAUTHORIZED(401, "B997", "Unauthorized Error Exception"),
+
+    /**
+     * *********************************** custom Error CodeList ********************************************
+     */
+    // Transaction Insert Error
+    INSERT_ERROR(200, "9999", "Insert Transaction Error Exception"),
+
+    // Transaction Update Error
+    UPDATE_ERROR(200, "9999", "Update Transaction Error Exception"),
+
+    // Transaction Delete Error
+    DELETE_ERROR(200, "9999", "Delete Transaction Error Exception"),
+
+    ; // End
+
+    /**
+     * *********************************** Error Code Constructor ********************************************
+     */
+    // 에러 코드의 '코드 상태'을 반환한다.
+    private int status;
+
+    // 에러 코드의 '코드간 구분 값'을 반환한다.
+    private String divisionCode;
+
+    // 에러코드의 '코드 메시지'을 반환한다.
+    private String message;
+
+    // 생성자 구성
+    ErrorCode(final int status, final String divisionCode, final String message) {
+        this.status = status;
+        this.divisionCode = divisionCode;
+        this.message = message;
+    }
+}
+```
 
 > ## JwtAccessDeniedHandler 작성
+```Java
+/**
+ * 403 Forbidden Exception 처리를 위한 클래스
+ * 공통적인 응답을 위한 ErrorResponse
+ */
+@Slf4j
+public class JwtAccessDeniedHandler implements AccessDeniedHandler {
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        PrintWriter printWriter = response.getWriter();
+
+        JSONObject jsonObject = jsonResponseWrapper(accessDeniedException);
+
+        printWriter.print(jsonObject);
+        printWriter.close();
+    }
+
+    private JSONObject jsonResponseWrapper (Exception e) {
+        log.error("403 Forbidden 에러 : ", e);
+
+        HashMap<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("status", ErrorCode.FORBIDDEN.getStatus());
+        jsonMap.put("code", ErrorCode.FORBIDDEN.getDivisionCode());
+        jsonMap.put("message", ErrorCode.FORBIDDEN.getMessage());
+        jsonMap.put("reason", "Forbidden"); // reason 을 내보내지 않기 위함 (exception 보안 문제)
+        return new JSONObject(jsonMap);
+    }
+}
+```
 
 > ## JwtAuthenticationEntryPoint 작성
+```Java
+/**
+ * 401 Unauthorized Exception 처리를 위한 클래스
+ */
+@Slf4j
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        PrintWriter printWriter = response.getWriter();
+
+        JSONObject jsonObject = jsonResponseWrapper(authException);
+
+        printWriter.print(jsonObject);
+        printWriter.close();
+    }
+
+    private JSONObject jsonResponseWrapper (Exception e) {
+        String resultMsg = "";
+
+        // 만료된 토큰만 resultMsg 에 적용 (프론트 검증시 필요(Refresh-Token 사용하기 위함))
+        // JWT 토큰 만료 (사용)
+        if(e instanceof ExpiredJwtException) {
+            resultMsg = "Token Expired";
+        }
+
+        // JWT 허용된 토큰이 아님
+        else if(e instanceof SignatureException) {
+            resultMsg = "Token SignatureException Login";
+        }
+
+        // JWT 토큰내에서 오류 발생 시
+        else if(e instanceof JwtException) {
+            resultMsg = "Token Parsing JwtException";
+        }
+
+        // 이외 JWT 토큰내에서 오류 발생
+        else {
+            resultMsg = "Other Token Error";
+        }
+
+        HashMap<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("status", ErrorCode.UNAUTHORIZED.getStatus());
+        jsonMap.put("code", ErrorCode.UNAUTHORIZED.getDivisionCode());
+        jsonMap.put("message", ErrorCode.UNAUTHORIZED.getMessage());
+        jsonMap.put("reason", resultMsg); // reason 을 내보내지 않기 위함 (exception 보안 문제)
+        JSONObject jsonObject = new JSONObject(jsonMap);
+
+        log.error(resultMsg, e);
+
+        return jsonObject;
+    }
+}
+```
 
 > ## Account 작성
 - 휴면 계정 및 일반 계정 관리를 위한 enum
+```Java
+@Getter
+public enum Account {
+    /**
+     * 휴면 계정
+     */
+    SLEEPER("Y"),
+    /**
+     *  일반 계정
+     */
+    UNSLEEPER("N");
+
+    private final String state;
+
+    Account(String state){
+        this.state = state;
+    }
+}
+```
 
 > ## CustomAuthSuccessHandler 코드 변경
+```Java
+@Slf4j
+@Configuration
+@RequiredArgsConstructor
+public class CustomAuthSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+
+    private final RedisRepository refreshTokenRedisRepository;
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
+        log.debug("3. CustomLoginSuccessHandler");
+
+        // [STEP1] 사용자와 관련된 정보를 모두 조회합니다.
+        UserDto userDto = ((UserDetailsDto) authentication.getPrincipal()).getUserDto();
+
+        // [STEP2] 조회한 데이터를 JSONObject 형태로 파싱을 수행합니다.
+        // 문제점 발생 지점
+        JSONObject userVoObj = (JSONObject)JSONValue.parse(new ObjectMapper().writeValueAsString(userDto));
+
+        HashMap<String, Object> responseMap = new HashMap<>();
+
+        JSONObject jsonObject;
+        // [STEP3-1] 사용자의 상태가 '휴면 상태' 인 경우 응답 값으로 전달 할 데이터
+        if(userDto.getUserSt().equals("D")) {
+        // [STEP3-1] 사용자의 상태가 '휴면 상태' 인 경우 응답 값으로 전달 할 데이터
+        if(userDto.getUserSt().equals(Account.SLEEPER.getState())) {
+            responseMap.put("userInfo", userVoObj);
+            responseMap.put("resultCode", 9001);
+            responseMap.put("token", null);
+            responseMap.put("failMsg", "휴면 계정입니다.");
+            jsonObject = new JSONObject(responseMap);
+        }
+
+        // [STEP3-2] 사용자의 상태가 '휴면 상태'가 아닌 경우 응답 값으로 전달할 데이터
+        else {
+            // 1. 일반 계정일 경우 데이터 세팅
+            responseMap.put("userInfo", userVoObj);
+            responseMap.put("resultCode", 200);
+            responseMap.put("failMsg", null);
+            jsonObject = new JSONObject(responseMap);
+
+            // TODO: 추후 JWT 발급에 사용할 예정
+            JwtToken jwtToken = TokenUtils.generateJwtToken(userDto);
+            response.addHeader(AuthConstants.AUTH_ACCESS, jwtToken.getAccessToken());
+            response.addHeader(AuthConstants.AUTH_REFRESH, jwtToken.getRefreshToken());
+
+            // Redis 정보 저장
+            refreshTokenRedisRepository.save(RefreshToken.builder()
+                    .id(null)
+                    .ip(NetUtils.getClientIp(request))
+                    .userId(userDto.getUserId())
+                    .refreshToken(jwtToken.getRefreshToken())
+                    .build());
+            //log.info("IP : {}", NetUtils.getClientIp(request)); // 클라이언트 IP 확인 로그
+        }
+
+        // [STEP4] 구성한 응답 값을 전달합니다.
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        PrintWriter printWriter = response.getWriter();
+        printWriter.print(jsonObject); // 최종 저장된 '사용자 정보', '사이트 정보' Front 전달
+        printWriter.flush();
+        printWriter.close();
+    }
+}
+```
 
 > ## TB_USER 테이블 변경
+```SQL
+CREATE TABLE TB_USER(
+   USER_SQ       INT AUTO_INCREMENT PRIMARY KEY,
+   USER_ID       VARCHAR(20) NOT NULL,
+   USER_PW       VARCHAR(60) NOT NULL,
+   USER_NM       VARCHAR(20) NOT NULL,
+   USER_ST       VARCHAR(1) NOT NULL CHECK(USER_ST IN ('Y', 'N')) // 변경
+);
+```
 
 > ## WebSecurityConfig 코드 변경
+```Java
+@Slf4j
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
+public class WebSecurityConfig {
+
+    private final RedisRepository redisRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    /**
+     * 1. 정적 자원(Resource)에 대해서 인증된 사용자가 정적 자원의 접근에 대해 ‘인가’에 대한 설정을 담당하는 메서드이다.
+     * resources(css, js 등)의 경우 securityContext 등에 대한 조회가 불필요 하므로 disable 한다.
+     * @return WebSecurityCustomizer
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain resources(HttpSecurity http) throws Exception {
+        return http.requestMatchers(matchers -> matchers.antMatchers("/resources/**"))
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .requestCache(RequestCacheConfigurer::disable)
+                .securityContext(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable)
+                .build();
+    }
+
+    /**
+     * 2. HTTP 에 대해서 '인증'과 '인가'를 담당하는 메서드이며 필터를 통해 인증 방식과 인증 절차에 대해서 등록하며 설정을 담당하는 메서드이다. (변경)
+     * @param http HttpSecurity
+     * @return SecurityFilterChain
+     * @throws Exception exception
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.debug("[+] WebSecurityConfig Start !");
+
+        http
+                // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf 를 사용하지 않는다.
+                .csrf().disable()
+
+                // [STEP2-1] 401, 403 Exception 핸들링 지정
+                .exceptionHandling()
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint())
+                .accessDeniedHandler(jwtAccessDeniedHandler())
+                .and()
+
+                // [STEP2-2] JwtAuthorizationFilter 에서 사용자 인증 후 인가를 받은 권한에 대하여 접근 지정
+                .authorizeHttpRequests()
+                .antMatchers(
+                        "/api/users/signup" // 회원가입
+                        , "/api/users/duplicheck" // id 중복 체크
+                        , "/api/users/reissue" // Jwt 토큰 재발급
+                        , "/api/test/generateToken" // 토큰 발급 테스트
+                ).permitAll() // 모든 권한 접근 가능 (Anonymous 포함)
+                .antMatchers("/api/test/user").hasRole("USER") // USER 권한이 있을경우에만 접근 가능
+                .antMatchers("/api/test/admin").hasRole("ADMIN") // ADMIN 권한이 있을경우에만 접근 가능
+                .anyRequest().authenticated() // 나머지 URL 은 인증이 되어야지 접근 가능(anonymous 포함 X)
+                .and()
+
+                // [STEP3] Spring Security JWT Filter Load
+                .addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class)
+
+                // [STEP4] Session 기반의 인증기반을 사용하지 않고 추후 JWT 를 이용하여 인증 예정
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+
+                .and()
+                // [STEP5] form 기반의 로그인에 대해 비 활성화하며 커스텀으로 구성한 필터를 사용한다.
+                .formLogin().disable()
+
+                // [STEP6] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
+                .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+
+                // CORS 설정
+                .cors().configurationSource(corsConfigurationSource());
+        // [STEP7] 최종 구성한 값을 사용함.
+        return http.build();
+    }
+
+    /**
+     * 3. authenticate 의 인증 메서드를 제공하는 매니져로'Provider'의 인터페이스를 의미합니다.
+     * - 과정: CustomAuthenticationFilter → AuthenticationManager(interface) → CustomAuthenticationProvider(implements)
+     * @return AuthenticationManager
+     */
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(customAuthenticationProvider());
+    }
+
+    /**
+     * 4. '인증' 제공자로 사용자의 이름과 비밀번호가 요구됩니다.
+     * - 과정: CustomAuthenticationFilter → AuthenticationManager(interface) → CustomAuthenticationProvider(implements)
+     * @return CustomAuthenticationProvider
+     */
+    @Bean
+    public CustomAuthenticationProvider customAuthenticationProvider() {
+        return new CustomAuthenticationProvider(bCryptPasswordEncoder());
+    }
+
+    /**
+     * 5. 비밀번호를 암호화하기 위한 BCrypt 인코딩을 통하여 비밀번호에 대한 암호화를 수행합니다.
+     * @return BCryptPasswordEncoder
+     */
+    @Bean
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 6. 커스텀을 수행한 '인증' 필터로 접근 URL, 데이터 전달방식(form) 등 인증 과정 및 인증 후 처리에 대한 설정을 구성하는 메서드입니다.
+     * @return CustomAuthenticationFilter
+     */
+    @Bean
+    public CustomAuthenticationFilter customAuthenticationFilter() {
+        CustomAuthenticationFilter customAuthenticationFilter = new CustomAuthenticationFilter(authenticationManager());
+        customAuthenticationFilter.setFilterProcessesUrl("/api/users/login"); // 접근 URL
+        customAuthenticationFilter.setAuthenticationSuccessHandler(customLoginSuccessHandler()); // '인증' 성공 시 해당 핸들러로 처리를 전가한다.
+        customAuthenticationFilter.setAuthenticationFailureHandler(customLoginFailureHandler()); // '인증' 실패 시 해당 핸들러로 처리를 전가한다.
+        customAuthenticationFilter.afterPropertiesSet();
+        return customAuthenticationFilter;
+    }
+
+    /**
+     * 7. Spring Security 기반의 사용자의 정보가 맞을 경우 수행이 되며 결과값을 리턴해주는 Handler
+     * @return CustomLoginSuccessHandler
+     */
+    @Bean
+    public CustomAuthSuccessHandler customLoginSuccessHandler() {
+        return new CustomAuthSuccessHandler(redisRepository);
+    }
+
+    /**
+     * 8. Spring Security 기반의 사용자의 정보가 맞지 않을 경우 수행이 되며 결과값을 리턴해주는 Handler
+     * @return CustomAuthFailureHandler
+     */
+    @Bean
+    public CustomAuthFailureHandler customLoginFailureHandler() {
+        return new CustomAuthFailureHandler();
+    }
+
+    /**
+     * 9. CORS 설정
+     * @return UrlBasedCorsConfigurationSource
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.addAllowedOrigin("https://localhost:3000/");
+        configuration.addAllowedHeader("*");
+        configuration.addAllowedMethod("*");
+        configuration.setAllowCredentials(true);
+        configuration.addExposedHeader(AuthConstants.AUTH_HEADER);
+        configuration.addExposedHeader(AuthConstants.AUTH_ACCESS);
+        configuration.addExposedHeader(AuthConstants.AUTH_REFRESH);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    /**
+     * 10. JWT 토큰을 통하여서 사용자를 인증합니다.
+     * @return JwtAuthorizationFilter
+     */
+    @Bean
+    public JwtAuthorizationFilter jwtAuthorizationFilter() {
+        return new JwtAuthorizationFilter(redisTemplate);
+    }
+
+    /**
+     * 11. 401 Unauthorized Exception 처리 (추가)
+     * @return JwtAuthenticationEntryPoint
+     */
+    @Bean
+    public AuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint();
+    }
+
+    /**
+     * 12. 403 Forbidden Exception 처리 (추가)
+     * @return JwtAccessDeniedHandler
+     */
+    @Bean
+    public AccessDeniedHandler jwtAccessDeniedHandler() {
+        return new JwtAccessDeniedHandler();
+    }
+}
+```
+
+> ## UserController 코드 변경
+- UserService의 login 메서드 이름 변경 -> findByUserId
+
+> ## TestController 코드 추가
+```Java
+@Slf4j
+@RestController
+@RequestMapping("/api/test")
+public class TestController {
+    // ... 기존 코드 생략
+
+    @GetMapping("/user")
+    public ResponseEntity<ApiResponse> user() {
+        ApiResponse ar = ApiResponse.builder()
+                .result("들어와짐")
+                .resultCode(200)
+                .resultMsg("하이 유저")
+                .build();
+        return ResponseEntity.ok().body(ar);
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<ApiResponse> admin() {
+        ApiResponse ar = ApiResponse.builder()
+                .result("들어와짐")
+                .resultCode(200)
+                .resultMsg("하이 어드민")
+                .build();
+        return ResponseEntity.ok().body(ar);
+    }
+}
+```
 
 > ## 실행 결과
+- USER 권한이 있는 유저가 /api/test/user 요청 시
+    - 로그 이미지
+    - 응답 이미지
+- ADMIN 권한이 있는 유저가 /api/test/admin 요청 시
+    - 로그 이미지
+    - 응답 이미지
+
+- 권한이 없는데 권한이 필요한 URL 요청 이미지 Forbidden
+- 인증이 되어 있지 않은데 인증이 필요한 URL 요청 이미지 UnAuthorization 
+
 <br/>
 <hr/>
