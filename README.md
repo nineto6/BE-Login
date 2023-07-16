@@ -3742,8 +3742,11 @@ public class TestController {
     - 로그 이미지
     - 응답 이미지
 
-- 권한이 없는데 권한이 필요한 URL 요청 이미지 Forbidden
-- 인증이 되어 있지 않은데 인증이 필요한 URL 요청 이미지 UnAuthorization 
+- 권한이 없는데 권한이 필요한 URL 요청 이미지 403 Forbidden
+- 인증이 되어 있지 않은데 인증이 필요한 URL 요청 이미지 401 Unauthorized
 
+- 로그인 성공 시 유저 정보 응답 이미지 (테스트 용)
+- 정적 자원(이미지)에 대한 JWT 토큰 없이 요청 시 응답 이미지
+- JWT 토큰 Base64 디코딩 이미지
 <br/>
 <hr/>
