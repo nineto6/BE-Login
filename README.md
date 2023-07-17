@@ -3754,7 +3754,7 @@ public class TestController {
 - 로그인 성공 시 유저 정보 응답 이미지 (테스트 용)
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230629/be_resource_22.png">
 - 정적 자원(이미지)에 대한 JWT 토큰 없이 요청 시 응답 이미지
-<br> <img src="https://github.com/nineto6/iBE-Login/blob/main/md_resource/20230701/be_resource_18.png">
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230701/be_resource_18.png">
 - JWT 토큰 Base64 디코딩 이미지
 <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230701/be_resource_25.png">
 
