@@ -3737,16 +3737,26 @@ public class TestController {
 > ## 실행 결과
 - USER 권한이 있는 유저가 /api/test/user 요청 시
     - 로그 이미지
+    <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230629/be_resource_21.png">
     - 응답 이미지
+    <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230629/be_resource_20.png">
 - ADMIN 권한이 있는 유저가 /api/test/admin 요청 시
     - 로그 이미지
+    <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230629/be_resource_23.png">
     - 응답 이미지
+    <br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230629/be_resource_24.png">
 
 - 권한이 없는데 권한이 필요한 URL 요청 이미지 403 Forbidden
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230701/be_resource_17.png">
 - 인증이 되어 있지 않은데 인증이 필요한 URL 요청 이미지 401 Unauthorized
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230701/be_resource_16.png">
 
 - 로그인 성공 시 유저 정보 응답 이미지 (테스트 용)
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230629/be_resource_22.png">
 - 정적 자원(이미지)에 대한 JWT 토큰 없이 요청 시 응답 이미지
+<br> <img src="https://github.com/nineto6/iBE-Login/blob/main/md_resource/20230701/be_resource_18.png">
 - JWT 토큰 Base64 디코딩 이미지
+<br> <img src="https://github.com/nineto6/BE-Login/blob/main/md_resource/20230701/be_resource_25.png">
+
 <br/>
 <hr/>
