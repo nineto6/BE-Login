@@ -255,7 +255,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .orElseThrow(() -> new AuthenticationServiceException(userId));
         }
 
-        // 비밀번호가 맞지 않는 경우 예외 처리
+        // 아이디가 맞지 않는 경우 예외 처리
         else {
             return userService.login(userDto)
                     .map(u -> new UserDetailsDto(u, Collections.singleton(new SimpleGrantedAuthority(u.getUserId()))))
@@ -3081,7 +3081,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .orElseThrow(() -> new AuthenticationServiceException(userId));
         }
 
-        // 비밀번호가 맞지 않는 경우 예외 처리
+        // 아이디가 맞지 않는 경우 예외 처리
         else {
             return userService.findByUserId(userId)
                     .map(u -> new UserDetailsDto(u, u.getUserRoles()))
