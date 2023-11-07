@@ -1645,10 +1645,10 @@ custom.jwt-secret-key=exampleSecretKey
 - 서버는 로그인 성공시 Access-Token 과 Refresh-Token을 발급한다.(header에 응답)
     - 이때 Redis(인메모리 데이터 저장소)에 Refresh-Token과 요청한 IP 그리고 userId(토큰 생성시 claim 필요)를 함께 저장한다.
 - 클라이언트는 localStorage를 이용하여 Access-Token 과 Refresh-Token을 저장한다.
-- 클라이언트는 인증이 필요한 URL 요청시(/api/board GET.. 등) Access-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
+- 클라이언트는 인증이 필요한 URL 요청시(/api/board GET.. 등) Access-Token을 헤더에 Authorization Bearer 형식으로 넣어서 요청한다.
 - 서버는 Access-Token을 받고 인증된 토큰인지 확인 후 처리를 하고 응답한다.
 - Access-Token이 만료되었을 경우에는 에러 메세지를 응답하게 된다.(401와 함께 Token Expired)
-- 클라이언트는 토큰이 만료되었을 경우 .../api/reissue URL에 Refresh-Token을 헤더에 Autorization Bearer 형식으로 넣어서 요청한다.
+- 클라이언트는 토큰이 만료되었을 경우 .../api/reissue URL에 Refresh-Token을 헤더에 Authorization Bearer 형식으로 넣어서 요청한다.
 - 서버는 Refresh-Token을 받고 인증된 토큰인지 확인 후(만료가 되었는지도 확인) Refresh-Token을 Redis에 조회하여 Request 된 IP와  조회된 IP를 비교 후 같은 IP일 경우 Access-Token 과 Refresh-Token을 함께 발급하여 응답한다.(이때 Redis에 새로 발급한 토큰을 Update) 
 
 > ## Redis 추가
